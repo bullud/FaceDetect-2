@@ -17,19 +17,18 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	Mat image;
-	image = imread(argv[1], IMREAD_COLOR); // Read the file
-
-	if (!image.data) // Check for invalid input
-	{
-		cout << "Could not open or find the image" << std::endl;
-		return -1;
-	}
+	IplImage* img = cvLoadImage( argv[1] );
 
 	namedWindow("Display window", WINDOW_AUTOSIZE); // Create a window for display.
-	imshow("Display window", image); // Show our image inside it.
+	cvShowImage("Display window", img);
 
-	waitKey(0); // Wait for a keystroke in the window
+	while (1)
+	{
+		if (cvWaitKey(100) == 27) break;
+	}
+
+	cvDestroyAllWindows();
+	cvReleaseImage(&img);
 	return 0;
 }
 
