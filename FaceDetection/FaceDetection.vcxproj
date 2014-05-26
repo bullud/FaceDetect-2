@@ -60,7 +60,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent Condition="'$(Configuration)'=='Debug'">
-      <Command>for %%a in (opencv_core249d.dll, opencv_highgui249d.dll) do (xcopy /Y "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\%%a" "$(OutDir)")</Command>
+      <Command>for %%a in (opencv_core249d.dll, opencv_highgui249d.dll, opencv_objdetect249d.dll, opencv_imgproc249d.dll) do (xcopy /Y "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\%%a" "$(OutDir)")</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
@@ -80,7 +80,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent Condition="'$(Configuration)'=='Release'">
-      <Command>for %%a in (opencv_core249.dll, opencv_highgui249.dll) do (xcopy /Y "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\%%a" "$(OutDir)")</Command>
+      <Command>for %%a in (opencv_core249.dll, opencv_highgui249.dll, opencv_objdetect249.dll, opencv_imgproc249.dll) do (xcopy /Y "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\%%a" "$(OutDir)")</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -95,6 +95,15 @@
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resource Files\haarcascade_frontalface_alt.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Xml Include="Resource Files\haarcascade_frontalface_alt2.xml" />
+    <Xml Include="Resource Files\haarcascade_frontalface_alt_tree.xml" />
+    <Xml Include="Resource Files\haarcascade_frontalface_default.xml" />
+    <Xml Include="Resource Files\haarcascade_profileface.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
