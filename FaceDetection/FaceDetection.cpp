@@ -2,33 +2,40 @@
 //
 
 #include "stdafx.h"
-#include "opencv2/core/core.hpp"
+#include "opencv2/objdetect/objdetect.hpp"
 #include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
 #include <iostream>
 
-using namespace cv;
-using namespace std;
+using cv::Mat;
+using cv::waitKey;
+using std::wcerr;
 
 int main(int argc, char** argv)
 {
-	if (argc != 2)
+	CvCapture* capture = cvCaptureFromCAM(0);
+	if (!capture)
 	{
-		cout << " Usage: display_image ImageToLoadAndDisplay" << endl;
-		return -1;
+		wcerr << L"No camera is detected.\n";
+		return 1;
 	}
 
-	IplImage* img = cvLoadImage( argv[1] );
-
-	namedWindow("Display window", WINDOW_AUTOSIZE); // Create a window for display.
-	cvShowImage("Display window", img);
-
-	while (1)
+	Mat frame;
+	while (true)
 	{
-		if (cvWaitKey(100) == 27) break;
-	}
+		frame = cvQueryFrame(capture);
+		if (frame.empty())
+		{
+			wcerr << L"No captured frame.\n";
+			return 2;
+		}
 
-	cvDestroyAllWindows();
-	cvReleaseImage(&img);
+		imshow("Face detection", frame);
+
+		int c = waitKey(10);
+		if ((char)c == 'c') { return 0; }
+	}
+	
 	return 0;
 }
 
