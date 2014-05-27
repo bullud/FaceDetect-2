@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 	};
 
 	CascadeClassifier profile_face_cascade;
-	if (!front_face_cascade.load("Resource Files/haarcascade_profileface.xml"))
+	if (!profile_face_cascade.load("Resource Files/haarcascade_profileface.xml"))
 	{
 		wcerr << L"Cannot load profile face cascade file.\n";
 		return -1;
