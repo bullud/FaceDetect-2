@@ -71,6 +71,15 @@ int main(int argc, char** argv)
 	return 0;
 }
 
+void RenderDetectResult(const vector<Rect> &faces, Mat &frame)
+{
+	for_each(faces.begin(), faces.end(), [&frame](const Rect &face)
+	{
+		Point center{ int(face.x + face.width * 0.5), int(face.y + face.height * 0.5) };
+		ellipse(frame, center, Size{ int(face.width * 0.5), int(face.height * 0.5) }, 0, 0, 360, Scalar{ 0, 255, 0 }, 1, 8, 0);
+	});
+}
+
 void detect(CascadeClassifier &front_face_cascade, CascadeClassifier &profile_face_cascade, Mat &frame)
 {
 	Mat frame_gray;
@@ -81,20 +90,12 @@ void detect(CascadeClassifier &front_face_cascade, CascadeClassifier &profile_fa
 	vector<Rect> faces;
 	front_face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size{ 30, 30 });
 
-	for_each(faces.begin(), faces.end(), [&frame](const Rect &face)
-	{
-		Point center{ int(face.x + face.width * 0.5), int(face.y + face.height * 0.5) };
-		ellipse(frame, center, Size{ int(face.width * 0.5), int(face.height * 0.5) }, 0, 0, 360, Scalar{ 0, 255, 0 }, 1, 8, 0);
-	});
+	RenderDetectResult(faces, frame);
 
 	faces.clear();
 	profile_face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size{ 30, 30 });
 
-	for_each(faces.begin(), faces.end(), [&frame](const Rect &face)
-	{
-		Point center{ int(face.x + face.width * 0.5), int(face.y + face.height * 0.5) };
-		ellipse(frame, center, Size{ int(face.width * 0.5), int(face.height * 0.5) }, 0, 0, 360, Scalar{ 0, 255, 0 }, 1, 8, 0);
-	});
+	RenderDetectResult(faces, frame);
 }
 
 
