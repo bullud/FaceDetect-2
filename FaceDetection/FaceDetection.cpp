@@ -17,6 +17,7 @@ using cv::Size;
 using cv::Point;
 using cv::Scalar;
 using cv::ellipse;
+using cv::VideoCapture;
 using std::wcerr;
 using std::vector;
 using std::for_each;
@@ -39,8 +40,8 @@ int main(int argc, char** argv)
 		return -1;
 	};
 
-	CvCapture* capture = cvCaptureFromCAM(-1);
-	if (!capture)
+	VideoCapture camera{ 0 };
+	if (!camera.isOpened())
 	{
 		wcerr << L"No camera is detected.\n";
 		return 1;
@@ -49,7 +50,7 @@ int main(int argc, char** argv)
 	Mat frame;
 	while (true)
 	{
-		frame = cvQueryFrame(capture);
+		camera.read(frame);
 		if (frame.empty())
 		{
 			wcerr << L"No captured frame.\n";
