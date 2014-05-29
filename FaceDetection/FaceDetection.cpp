@@ -86,7 +86,6 @@ void detect(CascadeClassifier &front_face_cascade, CascadeClassifier &profile_fa
 	cvtColor(frame, frame_gray, CV_BGR2GRAY);
 	equalizeHist(frame_gray, frame_gray);
 
-	//-- Detect faces
 	vector<Rect> faces;
 	front_face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size{ 30, 30 });
 
