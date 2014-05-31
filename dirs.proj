@@ -2,6 +2,7 @@
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ProjectFiles Include="FaceDetection\FaceDetection.vcxproj" />
+    <ProjectFiles Include="FaceDetectionInstaller\FaceDetectionInstaller.wixproj" />
   </ItemGroup>
   <Import Project="root.targets"/>
 </Project>
