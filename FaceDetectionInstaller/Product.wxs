@@ -1,30 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-	<Product Id="*" Name="FaceDetectionInstaller" Language="1033" Version="1.0.0.0" Manufacturer="FaceDetection" UpgradeCode="b7c48d6c-5b35-4c15-bb7f-208e45a8821c">
+  <?include Variables.wxi ?>
+
+	<Product Id="*" Name="FaceDetection" Language="1033" Version="1.0.0.0" Manufacturer="FaceDetection" UpgradeCode="b7c48d6c-5b35-4c15-bb7f-208e45a8821c">
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
 
 		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
 		<MediaTemplate />
 
-		<Feature Id="ProductFeature" Title="FaceDetectionInstaller" Level="1">
+		<Feature Id="ProductFeature" Title="FaceDetection" Level="1">
 			<ComponentGroupRef Id="ProductComponents" />
 		</Feature>
 	</Product>
 
 	<Fragment>
 		<Directory Id="TARGETDIR" Name="SourceDir">
-			<Directory Id="ProgramFilesFolder">
-				<Directory Id="INSTALLFOLDER" Name="FaceDetectionInstaller" />
-			</Directory>
+      <Directory Id="$(var.PlatformProgramFilesFolder)">
+        <Directory Id="INSTALLFOLDER" Name="FaceDetection" />
+      </Directory>
 		</Directory>
 	</Fragment>
 
 	<Fragment>
 		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-			<!-- TODO: Remove the comments around this Component element and the ComponentRef below in order to add resources to this installer. -->
-			<!-- <Component Id="ProductComponent"> -->
-				<!-- TODO: Insert files, registry keys, and other resources here. -->
-			<!-- </Component> -->
+      <Component Id="FaceDetection" Guid="{2D123ECA-EBC9-4605-B217-0D7E77F6C246}">
+        <File Id="FaceDetection.exe" Source="$(var.FaceDetection.TargetPath)" KeyPath="yes" />
+      </Component>
 		</ComponentGroup>
 	</Fragment>
 </Wix>
