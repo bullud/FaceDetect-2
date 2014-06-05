@@ -6,10 +6,11 @@
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
 
 		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
-		<MediaTemplate />
+		<MediaTemplate EmbedCab="yes" />
 
 		<Feature Id="ProductFeature" Title="FaceDetection" Level="1">
 			<ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="ProductShortcutComponents" />
 		</Feature>
 	</Product>
 
@@ -17,6 +18,9 @@
 		<Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="$(var.PlatformProgramFilesFolder)">
         <Directory Id="INSTALLFOLDER" Name="FaceDetection" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="FaceDetectionShortcutsDir" Name="Face Detection" />
       </Directory>
 		</Directory>
 	</Fragment>
@@ -26,6 +30,65 @@
       <Component Id="FaceDetection" Guid="{2D123ECA-EBC9-4605-B217-0D7E77F6C246}">
         <File Id="FaceDetection.exe" Source="$(var.FaceDetection.TargetPath)" KeyPath="yes" />
       </Component>
+
+      <?if $(var.Configuration) = "Debug" ?>
+        <Component Id="msvcp120" Guid="{9669D6E2-A291-49E5-BCFC-8B4CCDD39EFE}">
+          <File Id="msvcp120.dll" Source="$(var.FaceDetection.TargetDir)\msvcp120d.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="msvcr120" Guid="{0DE03057-5FE4-4952-9ED4-797DFE8E8107}">
+          <File Id="msvcr120.dll" Source="$(var.FaceDetection.TargetDir)\msvcr120d.dll" KeyPath="yes" />
+        </Component>
+      <?else?>
+        <Component Id="msvcp120" Guid="{0620D6E0-2E2B-4458-8DC4-EE84E37CAE9D}">
+          <File Id="msvcp120.dll" Source="$(var.FaceDetection.TargetDir)\msvcp120.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="msvcr120" Guid="{11EE10DC-B1EF-4CB0-B442-5AC737249644}">
+          <File Id="msvcr120.dll" Source="$(var.FaceDetection.TargetDir)\msvcr120.dll" KeyPath="yes" />
+        </Component>
+      <?endif?>
+
+      <?if $(var.Configuration) = "Debug" ?>
+        <Component Id="opencv_core249" Guid="{C8D34B6E-6F64-496B-80AD-7A978D1809B8}">
+          <File Id="opencv_core249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_core249d.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="opencv_highgui249" Guid="{98304EE2-00F7-4A19-AEDB-92CC82695DDA}">
+          <File Id="opencv_highgui249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_highgui249d.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="opencv_imgproc249" Guid="{5D990610-1D82-49DB-B727-F01354F2E5FD}">
+          <File Id="opencv_imgproc249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_imgproc249d.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="opencv_objdetect249" Guid="{AAACBA42-AE70-4A53-A15B-21221B0E5339}">
+          <File Id="opencv_objdetect249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_objdetect249d.dll" KeyPath="yes" />
+        </Component>
+      <?else?>
+        <Component Id="opencv_core249" Guid="{6C191E15-66AC-4ADE-84D6-77E6EBA4C66D}">
+          <File Id="opencv_core249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_core249.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="opencv_highgui249" Guid="{0F72029D-0231-4980-8DA1-A4E4967DAC63}">
+          <File Id="opencv_highgui249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_highgui249.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="opencv_imgproc249" Guid="{3D9B3188-1819-4FED-B2F2-948A4F11F71C}">
+          <File Id="opencv_imgproc249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_imgproc249.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="opencv_objdetect249" Guid="{7B822EE5-A0A4-476B-B911-64DD344CF810}">
+          <File Id="opencv_objdetect249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_objdetect249.dll" KeyPath="yes" />
+        </Component>
+      <?endif?>
 		</ComponentGroup>
+    <ComponentGroup Id="ProductShortcutComponents" Directory="FaceDetectionShortcutsDir">
+      <Component Id="FaceDetectionShortcut" Guid="{8C7A2D28-2D44-44E7-B06A-4D99A25B7DA5}">
+        <Shortcut Id="FaceDetectionStartMenuShortcut"
+          Name="Face Detection"
+          Description="Face Detection"
+          Target="[INSTALLFOLDER]FaceDetection.exe" />
+        <RemoveFolder Id="RemoveFaceDetectionShortcutsDir" On="uninstall" />
+        <RegistryValue Root="HKCU"
+          Key="Software\FaceDetection"
+          Name="installed"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
 	</Fragment>
 </Wix>
