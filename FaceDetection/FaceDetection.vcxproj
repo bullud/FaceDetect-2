@@ -43,7 +43,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent Condition="'$(Configuration)'=='Debug'">
-      <Command>for %%a in ("$(VS120COMNTOOLS)..\..\VC\redist\Debug_NonRedist\$(PlatformTarget)\Microsoft.VC120.DebugCRT\msvcp120d.dll", "$(VS120COMNTOOLS)\..\..\VC\redist\Debug_NonRedist\$(PlatformTarget)\Microsoft.VC120.DebugCRT\msvcr120d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_core249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_highgui249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_objdetect249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_imgproc249d.dll") do (xcopy /Y %%a "$(OutDir)")</Command>
+      <Command>for %%a in ("$(VS120COMNTOOLS)..\..\VC\redist\Debug_NonRedist\$(PlatformTarget)\Microsoft.VC120.DebugCRT\msvcp120d.dll", "$(VS120COMNTOOLS)\..\..\VC\redist\Debug_NonRedist\$(PlatformTarget)\Microsoft.VC120.DebugCRT\msvcr120d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_core249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_highgui249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_objdetect249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_imgproc249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_features2d249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_flann249d.dll") do (xcopy /Y %%a "$(OutDir)")</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
@@ -63,7 +63,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent Condition="'$(Configuration)'=='Release'">
-      <Command>for %%a in ("$(VS120COMNTOOLS)..\..\VC\redist\$(PlatformTarget)\Microsoft.VC120.CRT\msvcp120.dll", "$(VS120COMNTOOLS)\..\..\VC\redist\$(PlatformTarget)\Microsoft.VC120.CRT\msvcr120.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_core249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_highgui249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_objdetect249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_imgproc249.dll") do (xcopy /Y %%a "$(OutDir)")</Command>
+      <Command>for %%a in ("$(VS120COMNTOOLS)..\..\VC\redist\$(PlatformTarget)\Microsoft.VC120.CRT\msvcp120.dll", "$(VS120COMNTOOLS)\..\..\VC\redist\$(PlatformTarget)\Microsoft.VC120.CRT\msvcr120.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_core249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_highgui249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_objdetect249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_imgproc249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_features2d249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_flann249.dll") do (xcopy /Y %%a "$(OutDir)")</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

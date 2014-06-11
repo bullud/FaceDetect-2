@@ -5,6 +5,7 @@
 #include "opencv2/objdetect/objdetect.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/features2d/features2d.hpp"
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -14,10 +15,13 @@ using cv::waitKey;
 using cv::CascadeClassifier;
 using cv::Rect;
 using cv::Size;
+using cv::KeyPoint;
 using cv::Point;
 using cv::Scalar;
 using cv::ellipse;
 using cv::VideoCapture;
+using cv::DrawMatchesFlags;
+using cv::GoodFeaturesToTrackDetector;
 using std::wcerr;
 using std::vector;
 using std::for_each;
@@ -78,6 +82,13 @@ void RenderDetectResult(const vector<Rect> &faces, Mat &frame)
 	{
 		Point center{ int(face.x + face.width * 0.5), int(face.y + face.height * 0.5) };
 		ellipse(frame, center, Size{ int(face.width * 0.5), int(face.height * 0.5) }, 0, 0, 360, Scalar{ 0, 255, 0 }, 1, 8, 0);
+
+		Mat mask = Mat::zeros(frame.size(), CV_8U);
+		ellipse(mask, center, Size(face.width / 3, face.height / 3), 0, 0, 360, Scalar(255, 0, 255), -1, 8, 0);
+		GoodFeaturesToTrackDetector detector(500, 0.01, 1.0, 3, true, 0.04);
+		vector<KeyPoint> keypoints;
+		detector.detect(frame, keypoints, mask);
+		drawKeypoints(frame, keypoints, frame, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
 	});
 }
 

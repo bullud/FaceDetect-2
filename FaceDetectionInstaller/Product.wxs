@@ -60,6 +60,12 @@
         <Component Id="opencv_objdetect249" Guid="{AAACBA42-AE70-4A53-A15B-21221B0E5339}">
           <File Id="opencv_objdetect249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_objdetect249d.dll" KeyPath="yes" />
         </Component>
+        <Component Id="opencv_features2d249" Guid="{C03BCF4B-FDB8-4902-8B38-08B15F1A55ED}">
+          <File Id="opencv_features2d249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_features2d249d.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="opencv_flann249" Guid="{B70B05F6-72AF-4C4A-A755-D36BA2045552}">
+          <File Id="opencv_flann249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_flann249d.dll" KeyPath="yes" />
+        </Component>
       <?else?>
         <Component Id="opencv_core249" Guid="{6C191E15-66AC-4ADE-84D6-77E6EBA4C66D}">
           <File Id="opencv_core249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_core249.dll" KeyPath="yes" />
@@ -72,6 +78,12 @@
         </Component>
         <Component Id="opencv_objdetect249" Guid="{7B822EE5-A0A4-476B-B911-64DD344CF810}">
           <File Id="opencv_objdetect249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_objdetect249.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="opencv_features2d249" Guid="{E948C683-43DE-4028-8301-E8C652338D4A}">
+          <File Id="opencv_features2d249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_features2d249.dll" KeyPath="yes" />
+        </Component>
+        <Component Id="opencv_flann249" Guid="{0F86DBC9-F549-4789-92BF-08655568B12C}">
+          <File Id="opencv_flann249.dll" Source="$(var.FaceDetection.TargetDir)\opencv_flann249.dll" KeyPath="yes" />
         </Component>
       <?endif?>
 		</ComponentGroup>
