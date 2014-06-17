@@ -8,7 +8,6 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
@@ -26,9 +25,15 @@
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <LinkIncremental>true</LinkIncremental>
+    <PostBuildEvent>
+      <Command>for %%a in ("$(VSTOOLS)..\..\VC\redist\Debug_NonRedist\$(PlatformTarget)\Microsoft.VC$(VSVER).DebugCRT\msvcp$(VSVER)d.dll", "$(VSTOOLS)..\..\VC\redist\Debug_NonRedist\$(PlatformTarget)\Microsoft.VC$(VSVER).DebugCRT\msvcr$(VSVER)d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_core249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_highgui249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_objdetect249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_imgproc249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_features2d249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_flann249d.dll") do (xcopy /Y %%a "$(OutDir)")</Command>
+    </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <LinkIncremental>false</LinkIncremental>
+    <PostBuildEvent>
+      <Command>for %%a in ("$(VSTOOLS)..\..\VC\redist\$(PlatformTarget)\Microsoft.VC$(VSVER).CRT\msvcp$(VSVER).dll", "$(VSTOOLS)..\..\VC\redist\$(PlatformTarget)\Microsoft.VC$(VSVER).CRT\msvcr$(VSVER).dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_core249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_highgui249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_objdetect249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_imgproc249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_features2d249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_flann249.dll") do (xcopy /Y %%a "$(OutDir)")</Command>
+    </PostBuildEvent>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
@@ -42,9 +47,6 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <PostBuildEvent Condition="'$(Configuration)'=='Debug'">
-      <Command>for %%a in ("$(VS120COMNTOOLS)..\..\VC\redist\Debug_NonRedist\$(PlatformTarget)\Microsoft.VC120.DebugCRT\msvcp120d.dll", "$(VS120COMNTOOLS)\..\..\VC\redist\Debug_NonRedist\$(PlatformTarget)\Microsoft.VC120.DebugCRT\msvcr120d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_core249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_highgui249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_objdetect249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_imgproc249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_features2d249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_flann249d.dll") do (xcopy /Y %%a "$(OutDir)")</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
@@ -62,9 +64,6 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
-    <PostBuildEvent Condition="'$(Configuration)'=='Release'">
-      <Command>for %%a in ("$(VS120COMNTOOLS)..\..\VC\redist\$(PlatformTarget)\Microsoft.VC120.CRT\msvcp120.dll", "$(VS120COMNTOOLS)\..\..\VC\redist\$(PlatformTarget)\Microsoft.VC120.CRT\msvcr120.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_core249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_highgui249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_objdetect249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_imgproc249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_features2d249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_flann249.dll") do (xcopy /Y %%a "$(OutDir)")</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />

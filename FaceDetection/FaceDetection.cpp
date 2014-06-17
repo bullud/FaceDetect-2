@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 		return -1;
 	};
 
-	VideoCapture camera{ 0 };
+	VideoCapture camera(0);
 	if (!camera.isOpened())
 	{
 		wcerr << L"No camera is detected.\n";
@@ -80,8 +80,8 @@ void RenderDetectResult(const vector<Rect> &faces, Mat &frame)
 {
 	for_each(faces.begin(), faces.end(), [&frame](const Rect &face)
 	{
-		Point center{ int(face.x + face.width * 0.5), int(face.y + face.height * 0.5) };
-		ellipse(frame, center, Size{ int(face.width * 0.5), int(face.height * 0.5) }, 0, 0, 360, Scalar{ 0, 255, 0 }, 1, 8, 0);
+		Point center(int(face.x + face.width * 0.5), int(face.y + face.height * 0.5));
+		ellipse(frame, center, Size(int(face.width * 0.5), int(face.height * 0.5)), 0, 0, 360, Scalar(0, 255, 0), 1, 8, 0);
 
 		Mat mask = Mat::zeros(frame.size(), CV_8U);
 		ellipse(mask, center, Size(face.width / 3, face.height / 3), 0, 0, 360, Scalar(255, 0, 255), -1, 8, 0);
@@ -99,12 +99,12 @@ void detect(CascadeClassifier &front_face_cascade, CascadeClassifier &profile_fa
 	equalizeHist(frame_gray, frame_gray);
 
 	vector<Rect> faces;
-	front_face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size{ 30, 30 });
+	front_face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(30, 30));
 
 	RenderDetectResult(faces, frame);
 
 	faces.clear();
-	profile_face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size{ 30, 30 });
+	profile_face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(30, 30));
 
 	RenderDetectResult(faces, frame);
 }
