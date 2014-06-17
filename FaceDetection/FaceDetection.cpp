@@ -1,112 +1,358 @@
-// FaceDetection.cpp : Defines the entry point for the console application.
-//
-
 #include "stdafx.h"
-#include "opencv2/objdetect/objdetect.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/features2d/features2d.hpp"
 #include <iostream>
-#include <vector>
-#include <algorithm>
 
-using cv::Mat;
-using cv::waitKey;
-using cv::CascadeClassifier;
-using cv::Rect;
-using cv::Size;
-using cv::KeyPoint;
-using cv::Point;
-using cv::Scalar;
-using cv::ellipse;
-using cv::VideoCapture;
-using cv::DrawMatchesFlags;
-using cv::GoodFeaturesToTrackDetector;
-using std::wcerr;
-using std::vector;
-using std::for_each;
+#include <opencv2/core/core.hpp>        // Basic OpenCV structures (cv::Mat, Scalar)
+#include <opencv2/imgproc/imgproc.hpp>  // Gaussian Blur
+#include <opencv2/highgui/highgui.hpp>  // OpenCV window I/O
+#include "opencv2/objdetect/objdetect.hpp"
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/nonfree/nonfree.hpp"
+#include "opencv2/video/tracking.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+#include "opencv2/nonfree/features2d.hpp"
 
-void detect(CascadeClassifier &front_face_cascade, CascadeClassifier &profile_face_cascade, Mat &frame);
+using namespace cv;
+using namespace std;
+
+#define MAX_FACES			3		// max support detected faces
+#define MIN_COUNT			10		// min key points gate
+
+static char WIN_NAME[] = "Face Tracking";
+static RNG rng(12345);
+
+// transform gate:
+#define TRANS_ENABLE			1
+
+// judge if two rect overlapped:
+static bool _faces_overlap(Rect& rect, vector<Rect>& target)
+{
+	for (size_t i = 0; i < target.size(); ++i)
+	{
+		if (rect.x > target[i].x + target[i].width)
+			continue;
+		if (rect.y > target[i].y + target[i].height)
+			continue;
+		if (rect.x + rect.width < target[i].x)
+			continue;
+		if (rect.y + rect.height < target[i].y)
+			continue;
+		return true;
+	}
+	return false;
+}
+
+static bool _find_mask_roi(VideoCapture& capture, 
+						   CascadeClassifier& frontal_face_detector, 
+						   CascadeClassifier& profile_face_detector,
+						   vector<Rect>& Faces, 
+						   vector<Mat>& mask_roi)
+{
+	Mat equalized_frame, target_frame, gray_frame;
+	Point center;
+	vector<Rect> Faces_t;
+	Mat roi_t;
+	mask_roi.clear();	// clear mask ROI
+	for (;;)
+	{
+		// Get frame:
+		capture >> target_frame;
+		if (target_frame.empty())
+		{
+			cout << "no video! over!" << endl;
+			break;
+		}
+
+		// detect:
+		cvtColor(target_frame, gray_frame, cv::COLOR_RGB2GRAY);
+		equalizeHist(gray_frame, equalized_frame);
+		if (equalized_frame.empty())
+		{
+			cout << "Equalize Hist convert failed!" << endl;
+			break;
+		}
+
+		// front face:
+		Faces.clear();
+		frontal_face_detector.detectMultiScale(equalized_frame, Faces, 1.1, 3, 0 | CV_HAAR_SCALE_IMAGE, Size(100, 100));
+		if (Faces.size())
+		{
+			cout << "Faces.size() = " << Faces.size() << endl;
+			// create mask frame:
+			size_t faces = Faces.size();
+			if (faces > MAX_FACES)
+				faces = MAX_FACES;
+			for (size_t i = 0; i < faces; ++i)
+			{	
+				// calculate the center: we only support one face currently...	
+				roi_t = Mat::zeros(target_frame.size(), CV_8U);
+				center = Point(Faces[i].x + Faces[i].width / 2, Faces[i].y + Faces[i].height / 2);
+				ellipse(roi_t, center, Size(Faces[i].width / 3, Faces[i].height / 3), 0, 0, 360, Scalar(255, 0, 255), -1, 8, 0);
+				mask_roi.push_back(roi_t);
+			}
+		}
+
+		// check need go on:
+		if(mask_roi.size() >= MAX_FACES)
+			break;
+
+		// profile face:
+		Faces_t.clear();
+		profile_face_detector.detectMultiScale(equalized_frame, Faces_t, 1.1, 3, 0 | CV_HAAR_SCALE_IMAGE, Size(100, 100));
+		if (Faces_t.size())
+		{
+			cout << "Faces_t.size() = " << Faces_t.size() << endl;
+			// create mask frame:
+			for (size_t i = 0; i < Faces_t.size(); ++i)
+			{	
+				if(Faces.size() >= MAX_FACES)
+					break;
+
+				// check if overlap:
+				if(_faces_overlap(Faces_t[i], Faces))
+					continue;
+
+				// calculate the center: we only support one face currently...	
+				roi_t = Mat::zeros(target_frame.size(), CV_8U);
+				center = Point(Faces_t[i].x + Faces_t[i].width / 2, Faces_t[i].y + Faces_t[i].height / 2);
+				ellipse(roi_t, center, Size(Faces_t[i].width / 3, Faces_t[i].height / 3), 0, 0, 360, Scalar(255, 0, 255), -1, 8, 0);
+				mask_roi.push_back(roi_t);
+				Faces.push_back(Faces_t[i]);
+			}
+		}
+
+		imshow(WIN_NAME, target_frame);
+		
+		// check if need exit:
+		if(mask_roi.size())
+			break;
+
+		if (' ' == waitKey(5))
+			break;
+	}
+
+	return mask_roi.size() ? true : false;
+}
 
 int main(int argc, char** argv)
 {
-	CascadeClassifier front_face_cascade;
-	if (!front_face_cascade.load("Resource Files/haarcascade_frontalface_alt.xml"))
+	// face detector init:
+	CascadeClassifier frontal_face_cascade;
+	if (!frontal_face_cascade.load("Resource Files/haarcascade_frontalface_alt.xml"))
 	{ 
-		wcerr << L"Cannot load front face cascade file.\n"; 
+		cout << "Cannot load front face cascade file.\n"; 
 		return -1; 
 	};
-
 	CascadeClassifier profile_face_cascade;
 	if (!profile_face_cascade.load("Resource Files/haarcascade_profileface.xml"))
 	{
-		wcerr << L"Cannot load profile face cascade file.\n";
+		cout << "Cannot load profile face cascade file.\n";
 		return -1;
 	};
-
-	VideoCapture camera(0);
-	if (!camera.isOpened())
-	{
-		wcerr << L"No camera is detected.\n";
-		return 1;
-	}
-
-	Mat frame;
-	while (true)
-	{
-		camera.read(frame);
-		if (frame.empty())
-		{
-			wcerr << L"No captured frame.\n";
-			return 2;
-		}
-
-		detect(front_face_cascade, profile_face_cascade, frame);
-
-		//-- Show what you got
-		imshow("Face detection", frame);
-
-		int c = waitKey(10);
-		if ((char)c == 'c') 
-		{ 
-			return 0;
-		}
-	}
 	
+	// open camera video:
+	VideoCapture capture(0); 
+	if (!capture.isOpened())
+	{
+		cout << "can not open camera!" << endl;
+		return -1;
+	}
+
+	// create window:
+	namedWindow(WIN_NAME, CV_WINDOW_AUTOSIZE);
+
+	// wait for camera video really come in:
+	Mat t;
+	do{
+		capture >> t;
+	} while (t.empty());
+
+	// OK, let's show forever...
+	Mat target_frame, gray_frame, prev_gray_frame;
+	vector<Rect> Faces;
+	vector<Mat> mask_roi;
+	// Keypoint detect init:
+	int minHessian = 400;
+	GoodFeaturesToTrackDetector feature_detector(minHessian, 0.01, 1.0, 3, true, 0.04); // using GFTT Detector
+	vector<KeyPoint> keypoints;
+	vector<Point2f> old_points[MAX_FACES];
+	vector<Point2f> cur_points[MAX_FACES];
+	bool needToInit = false;
+	int init_count = 0;
+	vector<Point2f> old_corners[MAX_FACES];
+	vector<Point2f> cur_corners(4);
+	Point2f face_corner;
+	vector<Point2f> screen_cornners(4);
+	// corners should be in image:
+	size_t screen_width = (size_t)capture.get(CV_CAP_PROP_FRAME_WIDTH);
+	size_t screen_height = (size_t)capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+	screen_cornners[0] = cvPoint(0, 0);
+	screen_cornners[1] = cvPoint(screen_width, 0);
+	screen_cornners[2] = cvPoint(screen_width, screen_height);
+	screen_cornners[3] = cvPoint(0, screen_height);
+
+	// enter main loop:
+	for (;;)
+	{
+		// get raw image:
+		capture >> target_frame;
+		if (target_frame.empty())
+		{
+			cout << "no camera video." << endl;
+			break;
+		}
+		// conver to gray image:
+		cvtColor(target_frame, gray_frame, cv::COLOR_RGB2GRAY);
+
+		// Detect Keypoints:
+		if (needToInit) 
+		{
+			cout << "init times = " << ++init_count << endl;
+
+			// decide init ROI:
+			if (!_find_mask_roi(capture, frontal_face_cascade, profile_face_cascade, Faces, mask_roi))
+			{
+				cout << "can not find ROI!" << endl;
+				break;
+			}
+
+			// detect keypoints:
+			for (size_t i = 0; i < mask_roi.size(); ++i)
+			{
+				feature_detector.detect(target_frame, keypoints, mask_roi[i]);
+				KeyPoint::convert(keypoints, cur_points[i]);
+				cout << i <<  ": init keypoints = " << cur_points[i].size() << endl;
+				//draw init rectangle:
+				rectangle(target_frame, Faces[i], Scalar(255, 0, 255), 2, 8);
+				//record corners:
+				old_corners[i].clear(); // important!!!
+				face_corner = cvPoint(Faces[i].x, Faces[i].y);
+				old_corners[i].push_back(face_corner);
+				face_corner = cvPoint(Faces[i].x + Faces[i].width, Faces[i].y);
+				old_corners[i].push_back(face_corner);
+				face_corner = cvPoint(Faces[i].x + Faces[i].width, Faces[i].y + Faces[i].height);
+				old_corners[i].push_back(face_corner);
+				face_corner = cvPoint(Faces[i].x, Faces[i].y + Faces[i].height);
+				old_corners[i].push_back(face_corner);
+			}
+
+			// only tracking...
+			needToInit = false;
+		}
+		else // start tracking...
+		{
+			for (size_t face_index = 0; face_index < mask_roi.size(); ++face_index)
+			{
+				if (old_points[face_index].empty())
+					continue;
+
+				// track keypoints:
+				vector<uchar> status;
+				vector<float> err;
+				if (prev_gray_frame.empty())
+					gray_frame.copyTo(prev_gray_frame);
+				cur_points[face_index].clear();
+				cv::calcOpticalFlowPyrLK(prev_gray_frame, gray_frame, old_points[face_index], cur_points[face_index], status, err, Size(21, 21), 2);
+				size_t i, k;
+				for (i = k = 0; i < cur_points[face_index].size(); i++)
+				{
+					// remove invalid points:
+					if (!status[i])
+						continue;
+
+					// remove out of range points:
+					if (cv::pointPolygonTest(old_corners[face_index], cur_points[face_index][i], false) < 0)
+						continue;
+
+					cur_points[face_index][k] = cur_points[face_index][i];
+					old_points[face_index][k] = old_points[face_index][i];
+					k++;
+					circle(target_frame, cur_points[face_index][i], 3, Scalar(rng.uniform(0, 255), rng.uniform(0, 255),
+						rng.uniform(0, 255)), 1, 8);
+				}
+				cur_points[face_index].resize(k);
+				old_points[face_index].resize(k);
+				//cout << "size = " << k << endl;
+
+#if (TRANS_ENABLE == 1)
+				// affine transform:
+				if (old_points[face_index].size() >= MIN_COUNT && cur_points[face_index].size() >= MIN_COUNT)
+				{
+					int size = min(old_points[face_index].size(), cur_points[face_index].size());
+					std::vector<Point2f> old_points_t;
+					std::vector<Point2f> cur_points_t;
+					for (size_t i = 0; i < 3; ++i)
+					{
+						old_points_t.push_back(old_points[face_index][i]);
+						cur_points_t.push_back(cur_points[face_index][i]);
+					}
+					// calculate tranform metrix:
+					//Mat H = cv::getAffineTransform(old_points_t, cur_points_t);
+					Mat H = cv::estimateRigidTransform(old_points_t, cur_points_t, true);
+					cv::transform(old_corners[face_index], cur_corners, H);
+
+					// judge if in screen:
+					int number_gate = 0;
+					for (size_t i = 0; i < 4; ++i)
+					{
+						if (cv::pointPolygonTest(screen_cornners, cur_corners[i], false) < 0)
+							number_gate++;
+					}
+					if (number_gate >= 2) // when more than 2 corners out of screen, re-init:
+					{
+						cout << "corrner out of range!" << endl;
+						old_points[face_index].clear();
+						cur_points[face_index].clear();
+						needToInit = true;
+					}
+					else
+					{
+						//-- Draw lines between the corners (the mapped object in the scene - image_2 )
+						line(target_frame, cur_corners[0], cur_corners[1], Scalar(0, 255, 0), 2);
+						line(target_frame, cur_corners[1], cur_corners[2], Scalar(0, 255, 0), 2);
+						line(target_frame, cur_corners[2], cur_corners[3], Scalar(0, 255, 0), 2);
+						line(target_frame, cur_corners[3], cur_corners[0], Scalar(0, 255, 0), 2);
+
+						// update previous cornners:
+						old_corners[face_index][0] = cur_corners[0];
+						old_corners[face_index][1] = cur_corners[1];
+						old_corners[face_index][2] = cur_corners[2];
+						old_corners[face_index][3] = cur_corners[3];
+					}
+				}
+#endif // #if (TRANS_ENABLE == 1)
+			} // face_index loop
+		} // if (needToInit)
+
+		// show window:
+		imshow(WIN_NAME, target_frame);
+
+		// update previous frame:
+		cv::swap(prev_gray_frame, gray_frame);
+		if (mask_roi.size() == 0)
+		{
+			needToInit = true;
+		}
+		if (!needToInit)
+		{
+			for (size_t face_index = 0; face_index < mask_roi.size(); ++face_index)
+			{
+				if (cur_points[face_index].size() < MIN_COUNT)
+				{
+					cout << face_index << ": keypoints too little - size() = " << cur_points[face_index].size() << endl;
+					needToInit = true;
+					old_points[face_index].clear(); // clear old key points...
+				}
+				else
+				{
+					std::swap(cur_points[face_index], old_points[face_index]);
+				}
+			}
+		}
+
+		if (' ' == waitKey(16))
+			break;
+	}
+
 	return 0;
 }
-
-void RenderDetectResult(const vector<Rect> &faces, Mat &frame)
-{
-	for_each(faces.begin(), faces.end(), [&frame](const Rect &face)
-	{
-		Point center(int(face.x + face.width * 0.5), int(face.y + face.height * 0.5));
-		ellipse(frame, center, Size(int(face.width * 0.5), int(face.height * 0.5)), 0, 0, 360, Scalar(0, 255, 0), 1, 8, 0);
-
-		Mat mask = Mat::zeros(frame.size(), CV_8U);
-		ellipse(mask, center, Size(face.width / 3, face.height / 3), 0, 0, 360, Scalar(255, 0, 255), -1, 8, 0);
-		GoodFeaturesToTrackDetector detector(500, 0.01, 1.0, 3, true, 0.04);
-		vector<KeyPoint> keypoints;
-		detector.detect(frame, keypoints, mask);
-		drawKeypoints(frame, keypoints, frame, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
-	});
-}
-
-void detect(CascadeClassifier &front_face_cascade, CascadeClassifier &profile_face_cascade, Mat &frame)
-{
-	Mat frame_gray;
-	cvtColor(frame, frame_gray, CV_BGR2GRAY);
-	equalizeHist(frame_gray, frame_gray);
-
-	vector<Rect> faces;
-	front_face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(30, 30));
-
-	RenderDetectResult(faces, frame);
-
-	faces.clear();
-	profile_face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(30, 30));
-
-	RenderDetectResult(faces, frame);
-}
-
 
