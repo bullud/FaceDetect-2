@@ -302,7 +302,7 @@ int main(int argc, char** argv)
 						if (cv::pointPolygonTest(screen_cornners, cur_corners[i], false) < 0)
 							number_gate++;
 					}
-					if (number_gate >= 2) // when more than 2 corners out of screen, re-init:
+					if (number_gate > 2) // when more than 2 corners out of screen, re-init:
 					{
 						cout << "corrner out of range!" << endl;
 						old_points[face_index].clear();
