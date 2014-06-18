@@ -277,17 +277,22 @@ int main(int argc, char** argv)
 				// affine transform:
 				if (old_points[face_index].size() >= MIN_COUNT && cur_points[face_index].size() >= MIN_COUNT)
 				{
-					int size = min(old_points[face_index].size(), cur_points[face_index].size());
+					int key_size = min(old_points[face_index].size(), cur_points[face_index].size());
 					std::vector<Point2f> old_points_t;
 					std::vector<Point2f> cur_points_t;
-					for (size_t i = 0; i < 3; ++i)
+					for (size_t i = 0; i < key_size; ++i)
 					{
 						old_points_t.push_back(old_points[face_index][i]);
 						cur_points_t.push_back(cur_points[face_index][i]);
 					}
 					// calculate tranform metrix:
 					//Mat H = cv::getAffineTransform(old_points_t, cur_points_t);
-					Mat H = cv::estimateRigidTransform(old_points_t, cur_points_t, true);
+					Mat H = cv::estimateRigidTransform(old_points_t, cur_points_t, false);
+					if(H.rows != 2 || H.cols != 3) // need 2x3 metrix!!!
+					{
+						cout << "transform metrix invalid: rows = " << H.rows << ", cols = " << H.cols << endl;
+						break;
+					}
 					cv::transform(old_corners[face_index], cur_corners, H);
 
 					// judge if in screen:
