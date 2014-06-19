@@ -15,7 +15,7 @@ using namespace cv;
 using namespace std;
 
 #define MAX_FACES			3		// max support detected faces
-#define MIN_COUNT			10		// min key points gate
+#define MIN_COUNT			20		// min key points gate (can not too small)
 
 static char WIN_NAME[] = "Face Tracking";
 static RNG rng(12345);
@@ -41,96 +41,63 @@ static bool _faces_overlap(Rect& rect, vector<Rect>& target)
 	return false;
 }
 
-static bool _find_mask_roi(VideoCapture& capture, 
-						   CascadeClassifier& frontal_face_detector, 
-						   CascadeClassifier& profile_face_detector,
-						   vector<Rect>& Faces, 
-						   vector<Mat>& mask_roi)
+static bool _detect_faces(	Mat& gray_frame, 
+							CascadeClassifier& frontal_face_detector, 
+							CascadeClassifier& profile_face_detector,
+							vector<Rect>& Faces) 
 {
-	Mat equalized_frame, target_frame, gray_frame;
-	Point center;
+	// check:
+	if(gray_frame.empty())
+		return false;
+
+	Mat equalized_frame;
+	equalizeHist(gray_frame, equalized_frame);
+
+	// front face:
+	Faces.clear();
+	frontal_face_detector.detectMultiScale(equalized_frame, Faces, 1.1, 3, 0 | CV_HAAR_SCALE_IMAGE, Size(100, 100));
+	if(Faces.size() >= MAX_FACES)
+		return true;
+
+	// profile face:
 	vector<Rect> Faces_t;
-	Mat roi_t;
-	mask_roi.clear();	// clear mask ROI
-	for (;;)
+	profile_face_detector.detectMultiScale(equalized_frame, Faces_t, 1.1, 3, 0 | CV_HAAR_SCALE_IMAGE, Size(100, 100));
+
+	for(size_t i=0; i<Faces_t.size(); ++i)
 	{
-		// Get frame:
-		capture >> target_frame;
-		if (target_frame.empty())
-		{
-			cout << "no video! over!" << endl;
+		if(Faces.size() >= MAX_FACES)
 			break;
-		}
-
-		// detect:
-		cvtColor(target_frame, gray_frame, cv::COLOR_RGB2GRAY);
-		equalizeHist(gray_frame, equalized_frame);
-		if (equalized_frame.empty())
-		{
-			cout << "Equalize Hist convert failed!" << endl;
-			break;
-		}
-
-		// front face:
-		Faces.clear();
-		frontal_face_detector.detectMultiScale(equalized_frame, Faces, 1.1, 3, 0 | CV_HAAR_SCALE_IMAGE, Size(100, 100));
-		if (Faces.size())
-		{
-			cout << "Faces.size() = " << Faces.size() << endl;
-			// create mask frame:
-			size_t faces = Faces.size();
-			if (faces > MAX_FACES)
-				faces = MAX_FACES;
-			for (size_t i = 0; i < faces; ++i)
-			{	
-				// calculate the center: we only support one face currently...	
-				roi_t = Mat::zeros(target_frame.size(), CV_8U);
-				center = Point(Faces[i].x + Faces[i].width / 2, Faces[i].y + Faces[i].height / 2);
-				ellipse(roi_t, center, Size(Faces[i].width / 3, Faces[i].height / 3), 0, 0, 360, Scalar(255, 0, 255), -1, 8, 0);
-				mask_roi.push_back(roi_t);
-			}
-		}
-
-		// check need go on:
-		if(mask_roi.size() >= MAX_FACES)
-			break;
-
-		// profile face:
-		Faces_t.clear();
-		profile_face_detector.detectMultiScale(equalized_frame, Faces_t, 1.1, 3, 0 | CV_HAAR_SCALE_IMAGE, Size(100, 100));
-		if (Faces_t.size())
-		{
-			cout << "Faces_t.size() = " << Faces_t.size() << endl;
-			// create mask frame:
-			for (size_t i = 0; i < Faces_t.size(); ++i)
-			{	
-				if(Faces.size() >= MAX_FACES)
-					break;
-
-				// check if overlap:
-				if(_faces_overlap(Faces_t[i], Faces))
-					continue;
-
-				// calculate the center: we only support one face currently...	
-				roi_t = Mat::zeros(target_frame.size(), CV_8U);
-				center = Point(Faces_t[i].x + Faces_t[i].width / 2, Faces_t[i].y + Faces_t[i].height / 2);
-				ellipse(roi_t, center, Size(Faces_t[i].width / 3, Faces_t[i].height / 3), 0, 0, 360, Scalar(255, 0, 255), -1, 8, 0);
-				mask_roi.push_back(roi_t);
-				Faces.push_back(Faces_t[i]);
-			}
-		}
-
-		imshow(WIN_NAME, target_frame);
-		
-		// check if need exit:
-		if(mask_roi.size())
-			break;
-
-		if (' ' == waitKey(5))
-			break;
+			
+		// check if overlap:
+		if(_faces_overlap(Faces_t[i], Faces))
+			continue;
+			
+		Faces.push_back(Faces_t[i]);
 	}
 
-	return mask_roi.size() ? true : false;
+	// debug:
+	cout << "Faces.size() = " << Faces.size() << endl;
+
+	if(Faces.size())
+		return true;
+	else
+		return false;
+}
+
+static bool _update_mask_rois(vector<Rect>& Faces, Size size, vector<Mat>& mask_roi)
+{
+	Mat roi_t;
+	Point center;
+	for (size_t i = 0; i < Faces.size(); ++i)
+	{	
+		// calculate the center: we only support one face currently...	
+		roi_t = Mat::zeros(size, CV_8U);
+		center = Point(Faces[i].x + Faces[i].width / 2, Faces[i].y + Faces[i].height / 2);
+		ellipse(roi_t, center, Size(Faces[i].width / 3, Faces[i].height / 3), 0, 0, 360, Scalar(255, 0, 255), -1, 8, 0);
+		mask_roi.push_back(roi_t);
+	}
+
+	return true;
 }
 
 int main(int argc, char** argv)
@@ -202,6 +169,8 @@ int main(int argc, char** argv)
 		}
 		// conver to gray image:
 		cvtColor(target_frame, gray_frame, cv::COLOR_RGB2GRAY);
+		// smooth it, otherwise a lot of false circles may be detected
+		GaussianBlur(gray_frame, gray_frame, Size(9, 9), 0, 0);
 
 		// Detect Keypoints:
 		if (needToInit) 
@@ -209,11 +178,15 @@ int main(int argc, char** argv)
 			cout << "init times = " << ++init_count << endl;
 
 			// decide init ROI:
-			if (!_find_mask_roi(capture, frontal_face_cascade, profile_face_cascade, Faces, mask_roi))
+			if (!_detect_faces(gray_frame, frontal_face_cascade, profile_face_cascade, Faces))
 			{
-				cout << "can not find ROI!" << endl;
-				break;
+				cout << "can not detect faces." << endl;
+				goto SHOW_FRAME;
 			}
+
+			// update mask roi:
+			mask_roi.clear();
+			_update_mask_rois(Faces, target_frame.size(), mask_roi);
 
 			// detect keypoints:
 			for (size_t i = 0; i < mask_roi.size(); ++i)
@@ -222,7 +195,7 @@ int main(int argc, char** argv)
 				KeyPoint::convert(keypoints, cur_points[i]);
 				cout << i <<  ": init keypoints = " << cur_points[i].size() << endl;
 				//draw init rectangle:
-				rectangle(target_frame, Faces[i], Scalar(255, 0, 255), 2, 8);
+				//rectangle(target_frame, Faces[i], Scalar(255, 0, 255), 2, 8);
 				//record corners:
 				old_corners[i].clear(); // important!!!
 				face_corner = cvPoint(Faces[i].x, Faces[i].y);
@@ -328,9 +301,6 @@ int main(int argc, char** argv)
 			} // face_index loop
 		} // if (needToInit)
 
-		// show window:
-		imshow(WIN_NAME, target_frame);
-
 		// update previous frame:
 		cv::swap(prev_gray_frame, gray_frame);
 		if (mask_roi.size() == 0)
@@ -353,6 +323,10 @@ int main(int argc, char** argv)
 				}
 			}
 		}
+		
+SHOW_FRAME:
+		// show window:
+		imshow(WIN_NAME, target_frame);
 
 		if (' ' == waitKey(16))
 			break;
