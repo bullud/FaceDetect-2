@@ -138,8 +138,9 @@ int main(int argc, char** argv)
 	vector<Rect> Faces;
 	vector<Mat> mask_roi;
 	// Keypoint detect init:
-	int minHessian = 400;
-	GoodFeaturesToTrackDetector feature_detector(minHessian, 0.01, 1.0, 3, true, 0.04); // using GFTT Detector
+	int maxCorners = 400;
+	double minDistance = 5.0;
+	GoodFeaturesToTrackDetector feature_detector(maxCorners, 0.01, minDistance, 3, true, 0.04); // using GFTT Detector
 	vector<KeyPoint> keypoints;
 	vector<Point2f> old_points[MAX_FACES];
 	vector<Point2f> cur_points[MAX_FACES];
