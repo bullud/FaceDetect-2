@@ -11,10 +11,13 @@
 #include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/nonfree/features2d.hpp"
 
+#include "source_lib/constants.h"	
+#include "source_lib/findEyeCenter.h"
+
 using namespace cv;
 using namespace std;
 
-#define MAX_FACES			3		// max support detected faces
+#define MAX_FACES			5		// max support detected faces
 #define MIN_COUNT			15		// min key points gate (can not too small)
 
 static char WIN_NAME[] = "Face Tracking";
@@ -23,7 +26,61 @@ static RNG rng(12345);
 // transform gate:
 #define TRANS_ENABLE			1
 
+///////////////////////////////////////////////// Help Functions ///////////////////////////////////////////////////
 
+// convert rect to points array:
+static void _rect_to_points(Rect& rect, vector<Point2f>& points)
+{
+	Point2f face_corner;
+	points.clear(); // important!!!
+	face_corner = cvPoint(rect.x, rect.y);
+	points.push_back(face_corner);
+	face_corner = cvPoint(rect.x + rect.width, rect.y);
+	points.push_back(face_corner);
+	face_corner = cvPoint(rect.x + rect.width, rect.y + rect.height);
+	points.push_back(face_corner);
+	face_corner = cvPoint(rect.x, rect.y + rect.height);
+	points.push_back(face_corner);
+}
+
+// convert points array to rect: 4 points need at least
+static void _points_to_rect(vector<Point2f>& corners, Rect& rect)
+{
+	float x1, x2, y1, y2;
+	// most left:
+	x1 = corners[0].x;
+	x2 = x1;
+	y1 = corners[0].y;
+	y2 = y1;
+	for(size_t i=1; i<corners.size(); ++i)
+	{
+		if(x1 > corners[i].x) 
+			x1 = corners[i].x;
+		if(x2 < corners[i].x)
+			x2 = corners[i].x;
+		if(y1 > corners[i].y)
+			y1 = corners[i].y;
+		if(y2 < corners[i].y)
+			y2 = corners[i].y;
+	}
+	rect = Rect((int)cvRound(x1), (int)cvRound(y1), (int)cvRound(x2-x1), (int)cvRound(y2-y1)); 
+}
+
+// judge two rect overlapped or not:
+static bool _rect_overlap(Rect& r1, Rect& r2, int allow=0)
+{
+	if ((r1.x + allow) > r2.x + r2.width)
+		return false;
+	if ((r1.y + allow) > r2.y + r2.height)
+		return false;
+	if (r1.x + r1.width < (r2.x + allow))
+		return false;
+	if (r1.y + r1.height < (r2.y + allow))
+		return false;
+	return true;
+}
+
+///////////////////////////////////////////////// Face Detection ///////////////////////////////////////////////////
 
 // structure to describe face:
 struct face_descriptor
@@ -60,21 +117,6 @@ static bool _find_free_node(size_t& index)
 			return true;
 	}
 	return false; 
-}
-
-// convert rect to points array:
-static void _rect_to_points(Rect& rect, vector<Point2f>& points)
-{
-	Point2f face_corner;
-	points.clear(); // important!!!
-	face_corner = cvPoint(rect.x, rect.y);
-	points.push_back(face_corner);
-	face_corner = cvPoint(rect.x + rect.width, rect.y);
-	points.push_back(face_corner);
-	face_corner = cvPoint(rect.x + rect.width, rect.y + rect.height);
-	points.push_back(face_corner);
-	face_corner = cvPoint(rect.x, rect.y + rect.height);
-	points.push_back(face_corner);
 }
 
 // just face rect overlapped with current face info:
@@ -114,25 +156,6 @@ static bool _really_new_face(Rect& new_face)
 	return true;
 }
 
-// detect detected faces overlap:
-static bool _faces_overlap(Rect& rect, vector<Rect>& target)
-{
-	for (size_t i = 0; i < target.size(); ++i)
-	{
-		if (rect.x > target[i].x + target[i].width)
-			continue;
-		if (rect.y > target[i].y + target[i].height)
-			continue;
-		if (rect.x + rect.width < target[i].x)
-			continue;
-		if (rect.y + rect.height < target[i].y)
-			continue;
-		return true;
-	}
-	return false;
-}
-
-
 static bool _detect_faces(	Mat& gray_frame, 
 							CascadeClassifier& frontal_face_detector, 
 							CascadeClassifier& profile_face_detector,
@@ -161,7 +184,13 @@ static bool _detect_faces(	Mat& gray_frame,
 			break;
 
 		// check if overlap:
-		if(_faces_overlap(Faces_t[i], Faces))
+		size_t k;
+		for(k=0; k<Faces.size(); ++k)
+		{
+			if(_rect_overlap(Faces_t[i], Faces[k]))
+				break;
+		}
+		if(k < Faces.size())
 			continue;
 
 		Faces.push_back(Faces_t[i]);
@@ -173,6 +202,7 @@ static bool _detect_faces(	Mat& gray_frame,
 		return false;
 }
 
+// create mask ROIs for detecting keypoints:
 static bool _create_mask_rois(vector<Rect>& Faces, Size size, vector<Mat>& mask_roi)
 {
 	Mat roi_t;
@@ -190,6 +220,7 @@ static bool _create_mask_rois(vector<Rect>& Faces, Size size, vector<Mat>& mask_
 	return true;
 }
 
+// detect keypoints:
 static bool _detect_keypoints(Mat& target_frame, 
 								GoodFeaturesToTrackDetector& feature_detector, 
 								Mat& mask_roi_t, 
@@ -209,6 +240,268 @@ static bool _detect_keypoints(Mat& target_frame,
 	return true;
 }
 
+////////////////////////////////////////////////// Generate Normalized Faces ////////////////////////////////////////////////
+
+#define SET_MIN(x, min)		do{if((x) < (min)) (x) = (min);}while(0)
+#define SET_MAX(x, max)		do{if((x) > (max)) (x) = (max);}while(0)
+
+const double DESIRED_LEFT_EYE_X = 0.16;
+const double DESIRED_LEFT_EYE_Y = 0.14;
+const double DESIRED_RIGHT_EYE_X = 1 - 0.16;
+const double DESIRED_RIGHT_EYE_Y = 1 - 0.14;
+const int DESIRED_FACE_WIDTH = 150;
+const int DESIRED_FACE_HEIGHT = 150;
+const int MIN_EYES_DISTANCE = 20;
+
+struct norm_face_des {
+	Mat _image;
+	String _win_name;
+};
+static vector<norm_face_des> NormFaceInfo[MAX_FACES];
+
+// save and display one normalized face:
+static void _push_norm_face(size_t face_index, Mat& frame)
+{
+	struct norm_face_des norm_face;
+	norm_face._image = frame.clone();
+	size_t index = NormFaceInfo[face_index].size();
+	char name[20];
+	sprintf_s(name, "%d-%d", face_index+1, index+1);
+	norm_face._win_name = String(name);
+	namedWindow(norm_face._win_name);
+	moveWindow(norm_face._win_name, index*30, face_index*40+index*30);
+	imshow(norm_face._win_name,  norm_face._image);
+	NormFaceInfo[face_index].push_back(norm_face);
+}
+
+// delete last normalized face:
+static void _pop_norm_face(size_t face_index)
+{
+	size_t size = NormFaceInfo[face_index].size();
+	if(size > 0)
+	{
+		struct norm_face_des norm_face;
+		norm_face = NormFaceInfo[face_index][size-1];
+		destroyWindow(norm_face._win_name);
+		NormFaceInfo[face_index].pop_back();	
+	}
+}
+
+// create normalized face, migarted from Keven's code:
+static bool _create_one_norm_face(	size_t face_index, 
+									Mat& gray_frame, 
+									CascadeClassifier& eye_detector, 
+									CascadeClassifier& glasses_detector)
+{
+	// 1. create face image:
+	//cout << "step 1: create face image." << endl;
+	Rect face_rect;
+	_points_to_rect(CurFaceInfo[face_index]._old_corners, face_rect);
+	SET_MIN(face_rect.x, 0);
+	SET_MIN(face_rect.y, 0);
+	SET_MAX(face_rect.width, (gray_frame.cols - face_rect.x));
+	SET_MAX(face_rect.height, (gray_frame.rows - face_rect.y));
+	Mat face_image = gray_frame(face_rect); 
+	//imshow("Face", face_image);
+
+	// 2. detect eyes using opencv library:
+	//cout << "step 2: detect eyes using opencv." << endl;
+	vector<Rect> EyeRect;
+	eye_detector.detectMultiScale(face_image, EyeRect, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(10, 10));
+	if(EyeRect.size() != 2) 
+	{
+		EyeRect.clear();
+		glasses_detector.detectMultiScale(face_image, EyeRect, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(10, 10));
+		if(EyeRect.size() != 2)
+		{
+			cout << "Error: EyeRect.size() = " << EyeRect.size() << endl;
+			return false;
+		}
+	}
+	if(_rect_overlap(EyeRect[0], EyeRect[1]))
+	{
+		cout << "Error: two eyes too close." << endl;
+		return false;
+	}
+	//for(size_t i=0; i<EyeRect.size(); ++i)
+	//	rectangle(face_image, EyeRect[i], Scalar(255), 2, 8);
+	//imshow("opencv eyes", face_image);
+
+	// 3. detect eyes using 3rd-part library:
+	//cout << "step 3: detect eyes using 3rd-part lib." << endl;
+	Mat show_face = face_image.clone(); // for display only, to be removed...
+	Point leftEye = Point(-1,-1);
+	Point rightEye = Point(-1,-1);
+	//optimal region size for iris detection
+	int eye_region_width = (int)(face_image.size().width * (kEyePercentWidth/100.0));	
+	int eye_region_height = (int)(face_image.size().height * (kEyePercentHeight/100.0)); 
+	int idx0;
+	int idx1;
+	if(EyeRect[0].x<EyeRect[1].x)
+	{
+		idx0 = 0;
+		idx1 = 1;
+	}
+	else
+	{
+		idx0 = 1;
+		idx1 = 0;
+	}
+	int temp = 0;
+	// amplify left-eye region:
+	leftEye.x = EyeRect[idx0].x + cvRound(EyeRect[idx0].width/2);
+	leftEye.y = EyeRect[idx0].y + cvRound(EyeRect[idx0].height/2);
+	EyeRect[idx0].x = leftEye.x - cvRound(eye_region_width/2);	
+	SET_MIN(EyeRect[idx0].x, 0);
+	EyeRect[idx0].y = leftEye.y - cvRound(eye_region_height/2);
+	SET_MIN(EyeRect[idx0].y, 0);
+	EyeRect[idx0].width = eye_region_width;
+	SET_MAX(EyeRect[idx0].width, (face_image.cols - EyeRect[idx0].x));
+	EyeRect[idx0].height = eye_region_height;
+	SET_MAX(EyeRect[idx0].height, (face_image.rows - EyeRect[idx0].y));
+	// amplify right-eye region:
+	rightEye.x = EyeRect[idx1].x + cvRound(EyeRect[idx1].width/2);
+	rightEye.y = EyeRect[idx1].y + cvRound(EyeRect[idx1].height/2);
+	EyeRect[idx1].x = rightEye.x - cvRound(eye_region_width/2);
+	SET_MIN(EyeRect[idx1].x, 0);
+	EyeRect[idx1].y = rightEye.y - cvRound(eye_region_height/2);
+	SET_MIN(EyeRect[idx1].y, 0);
+	EyeRect[idx1].width = eye_region_width;
+	SET_MAX(EyeRect[idx1].width, (face_image.cols - EyeRect[idx1].x));
+	EyeRect[idx1].height = eye_region_height;
+	SET_MAX(EyeRect[idx1].height, (face_image.rows - EyeRect[idx1].y));
+	if(_rect_overlap(EyeRect[idx0], EyeRect[idx1], (eye_region_width/8 + eye_region_height/8)/2))
+	{
+		rectangle(show_face, EyeRect[idx0], Scalar(255), 1, 8, 0);
+		rectangle(show_face, EyeRect[idx1], Scalar(255), 1, 8, 0);
+		imshow("eye1", show_face);
+		cout << "Error: two eyes too close - 2." << endl;
+		return false;
+	}
+	Point leftPupil = findEyeCenter(face_image.clone(), EyeRect[idx0], "Left Eye");
+	Point rightPupil = findEyeCenter(face_image.clone(), EyeRect[idx1], "Right Eye");
+	// coordinate converting:
+	Point leftEye_opencv = leftEye;
+	Point rightEye_opencv = rightEye;
+	leftEye.x = EyeRect[idx0].x + leftPupil.x;
+	leftEye.y = EyeRect[idx0].y + leftPupil.y;
+	rightEye.x = EyeRect[idx1].x + rightPupil.x;
+	rightEye.y = EyeRect[idx1].y + rightPupil.y;
+	if(norm(leftEye-leftEye_opencv)>10)  
+		leftEye = leftEye_opencv;
+	if(norm(rightEye-rightEye_opencv)>10)
+		rightEye = rightEye_opencv;
+	// show it:
+	rectangle(show_face, EyeRect[idx0], Scalar(255), 1, 8, 0);
+	rectangle(show_face, EyeRect[idx1], Scalar(255), 1, 8, 0);
+	circle(show_face, leftEye, 3, 1234);
+	circle(show_face, rightEye, 3, 1234);
+	imshow("eye1", show_face);
+
+	// 4. geometric transform
+	//cout << "step 4: geometric transform." << endl;
+	Point2f eyesCenter;
+	eyesCenter.x = (float)(leftEye.x + rightEye.x)/2;
+	eyesCenter.y = (float)(leftEye.y + rightEye.y)/2;
+	double dy = (rightEye.y - leftEye.y);
+	double dx = (rightEye.x - leftEye.x);
+	double len = sqrt(dx*dx+dy*dy); 
+	double angle = atan2(dy,dx)*180/CV_PI; 
+	double desiredLen = (DESIRED_RIGHT_EYE_X - 0.16); 
+	double scale = desiredLen*DESIRED_FACE_WIDTH/len; 
+	Mat rot_mat = getRotationMatrix2D(eyesCenter,angle,scale);
+	double ex = DESIRED_FACE_WIDTH/2 - eyesCenter.x; // 
+	double ey = DESIRED_FACE_HEIGHT*DESIRED_LEFT_EYE_Y - eyesCenter.y;
+	rot_mat.at<double>(0,2) += ex;
+	rot_mat.at<double>(1,2) += ey;
+	Mat warped = Mat(DESIRED_FACE_HEIGHT,DESIRED_FACE_WIDTH,CV_8U,Scalar(128));
+	warpAffine(face_image,warped,rot_mat,warped.size()); 
+	//imshow("warped",warped);
+
+	// 5. equalization
+	//cout << "step 5: equalization." << endl;
+	int w = warped.cols;
+	int h = warped.rows;
+	Mat wholeFace;
+	equalizeHist(warped,wholeFace);
+	int midX = w/2;
+	Mat leftSide = warped(Rect(0,0,midX,h));
+	Mat rightSide = warped(Rect(midX,0,w-midX,h));
+	equalizeHist(leftSide,leftSide); 
+	equalizeHist(rightSide,rightSide);
+	for(int y=0;y<h;y++) 
+	{
+		for(int x=0;x<w;x++)
+		{
+			int v;
+			if(x<w/4){
+				v = leftSide.at<uchar>(y,x);
+			}
+			else if(x<w/2){	
+				int lv = leftSide.at<uchar>(y,x);
+				int wv = wholeFace.at<uchar>(y,x);
+				float f = (x-w*1/4)/(float)(w/4);
+				v = cvRound((1-f)*lv+f*wv);
+			}
+			else if(x<w*3/4){
+				int rv = rightSide.at<uchar>(y,x-midX);
+				int wv = wholeFace.at<uchar>(y,x);
+				float f = (x-w*2/4)/(float)(w/4);
+				v = cvRound((1-f)*wv+f*rv);
+			}
+			else{
+				v = rightSide.at<uchar>(y,x-midX);
+			}
+			face_image.at<uchar>(y,x) = v;
+		}
+	}
+	//imshow("Equalzed",wholeFace);
+
+	// 6. elliptical mask
+	//cout << "step 6: elliptical mask." << endl;
+	Mat mask = Mat(warped.size(),CV_8UC1,Scalar(255));
+	double dw = DESIRED_FACE_WIDTH;
+	double dh = DESIRED_FACE_HEIGHT;
+	Point faceCenter = Point(cvRound(dw/2),cvRound(dh*0.4));
+	Size size = Size(cvRound(dw*0.5),cvRound(dh*0.8));	// why 50% x 80% ???
+	ellipse(mask,faceCenter,size,0,0,360,Scalar(0),CV_FILLED);
+	wholeFace.setTo(Scalar(128),mask);
+	//imshow("Processed",wholeFace);
+
+	// OK! we get the normalized face, record it:
+	_push_norm_face(face_index, wholeFace);
+
+	return true;
+}
+
+static void _create_norm_faces(Mat& gray_frame, CascadeClassifier& eye_detector, CascadeClassifier glasses_detector)
+{
+	// currently, we only add the first detected face:
+	for(size_t face_index=0; face_index<MAX_FACES; ++face_index)
+	{
+		if(!CurFaceInfo[face_index]._valid)
+			continue;
+		
+		// build one norm face:
+		_create_one_norm_face(face_index, gray_frame, eye_detector, glasses_detector);
+	}
+}
+
+static void _delete_norm_faces(void)
+{
+	// we only remove the last face:
+	for(size_t face_index=0; face_index<MAX_FACES; ++face_index)
+	{
+		if(!CurFaceInfo[face_index]._valid)
+			continue;
+
+		// build one norm face:
+		_pop_norm_face(face_index);
+	}
+}
+
+///////////////////////////////////////////////// Main Entry //////////////////////////////////////////////////////
+
 int main(int argc, char** argv)
 {
 	// face detector init:
@@ -224,6 +517,20 @@ int main(int argc, char** argv)
 		cout << "Cannot load profile face cascade file.\n";
 		return -1;
 	};
+	
+	// eye/glasses detector init:
+	CascadeClassifier eye_cascade;
+	if (!eye_cascade.load("Resource Files/haarcascade_eye.xml"))
+	{
+		cout << "Cannot load eye cascade file.\n";
+		return -1;
+	}
+	CascadeClassifier glasses_cascade;
+	if (!glasses_cascade.load("Resource Files/haarcascade_eye_tree_eyeglasses.xml"))
+	{
+		cout << "Cannot load glasses cascade file.\n";
+		return -1;
+	}
 	
 	// open camera video:
 	VideoCapture capture(0); 
@@ -243,7 +550,7 @@ int main(int argc, char** argv)
 	} while (t.empty());
 
 	// OK, let's show forever...
-	Mat target_frame, gray_frame, prev_gray_frame;
+	Mat target_frame, gray_frame, prev_gray_frame, norm_gray_frame;
 	vector<Rect> Faces;
 	vector<Rect> NewFaces;
 	vector<Mat> mask_roi;
@@ -278,9 +585,9 @@ int main(int argc, char** argv)
 			break;
 		}
 		// conver to gray image:
-		cvtColor(target_frame, gray_frame, cv::COLOR_RGB2GRAY);
+		cvtColor(target_frame, norm_gray_frame, cv::COLOR_RGB2GRAY);
 		// smooth it, otherwise a lot of false circles may be detected
-		GaussianBlur(gray_frame, gray_frame, Size(9, 9), 0, 0);
+		GaussianBlur(norm_gray_frame, gray_frame, Size(9, 9), 0, 0);
 
 		// decide detect ratio:
 		detect_ratio = 1;
@@ -469,10 +776,24 @@ TRACK_FACE:
 		frame_no++;
 		//cout << "frame - " << frame_no << endl;
 
-		if (' ' == waitKey(16))
+		switch(waitKey(16))
+		{
+		case 'a':
+		case 'A':
+			// add normalized face:
+			_create_norm_faces(norm_gray_frame, eye_cascade, glasses_cascade);
 			break;
+		case 'd':
+		case 'D':
+			// delete exist normalized face:
+			_delete_norm_faces();
+			break;
+		case ' ':
+			// exit program:
+			goto EXIT;
+		}
 	}
-
+EXIT:
 	return 0;
 }
 

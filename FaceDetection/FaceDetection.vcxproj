@@ -73,10 +73,17 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="source_lib\findEyeCenter.cpp" />
+    <ClCompile Include="source_lib\helpers.cpp" />
     <ClCompile Include="FaceDetection.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="source_lib\constants.h" />
+    <ClInclude Include="source_lib\findEyeCenter.h" />
+    <ClInclude Include="source_lib\helpers.h" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Resource Files\haarcascade_frontalface_alt.xml">
