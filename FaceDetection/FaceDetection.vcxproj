@@ -81,9 +81,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EyeDetectLib\constants.h" />
-    <ClInclude Include="EyeDetectLib\findEyeCenter.h" />
-    <ClInclude Include="EyeDetectLib\helpers.h" />
+    <ClInclude Include="source_lib\constants.h" />
+    <ClInclude Include="source_lib\findEyeCenter.h" />
+    <ClInclude Include="source_lib\helpers.h" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Resource Files\haarcascade_frontalface_alt.xml">
