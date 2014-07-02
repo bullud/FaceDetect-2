@@ -67,7 +67,7 @@ static void _points_to_rect(vector<Point2f>& corners, Rect& rect)
 }
 
 // judge two rect overlapped or not:
-static bool _rect_overlap(Rect& r1, Rect& r2, int allow=0)
+static bool _rect_overlap(Rect& r1, Rect& r2, double allow = 0)
 {
 	if ((r1.x + allow) > r2.x + r2.width)
 		return false;
@@ -80,7 +80,38 @@ static bool _rect_overlap(Rect& r1, Rect& r2, int allow=0)
 	return true;
 }
 
-///////////////////////////////////////////////// Face Detection ///////////////////////////////////////////////////
+// calculate two points center:
+static void _cal_line_center(Point2f& p1, Point2f& p2, Point2f& p)
+{
+	p.x = (p1.x + p2.x) / 2;
+	p.y = (p1.y + p2.y) / 2;
+}
+
+// calculate center point of 4-point polygon, we assume the polygon is symmetric...
+static void _cal_polygon_center(vector<Point2f>& points, Point2f& p)
+{
+	Point2f p1, p2;
+	_cal_line_center(points[0], points[1], p1);
+	_cal_line_center(points[2], points[3], p2);
+	_cal_line_center(p1, p2, p);
+}
+
+// calculate the rect center:
+static void _cal_rect_center(Rect& rect, Point2f& p)
+{
+	p.x = (float)((float)rect.x + (float)rect.width/2.0);
+	p.y = (float)((float)rect.y + (float)rect.height/2.0);
+}
+
+// calculate line length:
+static double _cal_line_length(Point2f& p1, Point2f& p2)
+{
+	double dx = (p1.x > p2.x) ? (p1.x - p2.x) : (p2.x - p1.x);
+	double dy = (p1.y > p2.y) ? (p1.y - p2.y) : (p2.y - p1.y);
+	return (double)sqrt(dx*dx+dy*dy);  
+}
+
+///////////////////////////////////////////////// Face Detection/Tracking ///////////////////////////////////////////////////
 
 // structure to describe face:
 struct face_descriptor
@@ -119,43 +150,27 @@ static bool _find_free_node(size_t& index)
 	return false; 
 }
 
-// just face rect overlapped with current face info:
+// improved new face filtering: when the center of new face not in previous face rect, we think it's new...
 static bool _really_new_face(Rect& new_face)
 {
-	vector<Point2f> face_points;
 	Point2f center;
-	_rect_to_points(new_face, face_points);
+	_cal_rect_center(new_face, center);
 
 	for(size_t i = 0; i < MAX_FACES; ++i)
 	{
 		if(!CurFaceInfo[i]._valid)
 			continue;
 
-		// old_corners overlapped with new face rect:
-		// 1. old_corners in new faces:
-		for(size_t k = 0; k < 4; ++k)
+		if(cv::pointPolygonTest(CurFaceInfo[i]._old_corners, center, false) > 0)
 		{
-			if(cv::pointPolygonTest(face_points, CurFaceInfo[i]._old_corners[k], false) > 0)
-			{
-				//cout << "[1 failed]" << endl;
-				return false;
-			}
-		}
-		// 2. new face corners in old_corners:
-		center = Point(new_face.x + new_face.width / 2, new_face.y + new_face.height / 2);
-		face_points.push_back(center);
-		for(size_t k = 0; k < 5; ++k)
-		{
-			if(cv::pointPolygonTest(CurFaceInfo[i]._old_corners, face_points[k], false) > 0)
-			{
-				//cout << "[2 failed]" << endl;
-				return false;
-			}
-		}
+			//cout << "not new face." << endl;
+			return false;
+		}	
 	}
 	return true;
 }
 
+// detect face:
 static bool _detect_faces(	Mat& gray_frame, 
 							CascadeClassifier& frontal_face_detector, 
 							CascadeClassifier& profile_face_detector,
@@ -287,6 +302,145 @@ static void _pop_norm_face(size_t face_index)
 	}
 }
 
+// judge if the eye_rects is valid:
+static bool _really_eyes(vector<Rect>& eye_rects, Rect& face_rect, vector<Point2f>& face_corner)
+{
+	// should more than 2 eyes:
+	if(eye_rects.size() < 2)
+	{
+		return false;
+	}
+
+	vector<Point2f> eye_range, left_range, right_range;
+	Point2f p;
+	// eyes range:
+	eye_range.push_back(face_corner[0]);
+	eye_range.push_back(face_corner[1]);
+	_cal_line_center(face_corner[1], face_corner[2], p);
+	eye_range.push_back(p);
+	_cal_line_center(face_corner[0], face_corner[3], p);
+	eye_range.push_back(p);
+	// left range:
+	left_range.push_back(eye_range[0]);
+	_cal_line_center(eye_range[0], eye_range[1], p);
+	left_range.push_back(p);
+	_cal_line_center(eye_range[2], eye_range[3], p);
+	left_range.push_back(p);
+	left_range.push_back(eye_range[3]);
+	// right range:
+	right_range.push_back(left_range[1]);
+	right_range.push_back(eye_range[1]);
+	right_range.push_back(eye_range[2]);
+	right_range.push_back(left_range[2]);
+
+	// prepare parametes:
+	double len;
+	// for left eye:
+	Point2f left_center;
+	double left_max_len;
+	_cal_polygon_center(left_range, left_center);
+	// calculate min length required:
+	len = _cal_line_length(left_center, left_range[0]);
+	left_max_len = _cal_line_length(left_center, left_range[1]);
+	if(left_max_len > len) left_max_len = len;
+	left_max_len = left_max_len * 0.65; // 65% of center to corner..
+	// for right eye:
+	Point2f right_center;
+	double right_max_len;
+	_cal_polygon_center(right_range, right_center);
+	len = _cal_line_length(right_center, right_range[0]);
+	right_max_len = _cal_line_length(right_center, right_range[1]);
+	if(right_max_len > len) right_max_len = len;
+	right_max_len = right_max_len * 0.65;
+
+	// classify left eye and right eye:
+	vector<Rect> left_eye_rect, right_eye_rect;
+	vector<Point2f> left_eye_center, right_eye_center;
+	for(size_t i=0; i<eye_rects.size(); ++i)
+	{
+		// calcualte eye rect center:
+		Rect _Rect = eye_rects[i];
+		_Rect.x += face_rect.x;	// coordinate convert
+		_Rect.y += face_rect.y; // coordinate convert
+		_cal_rect_center(_Rect, p);
+
+		// judge in left range
+		if(cv::pointPolygonTest(left_range, p, false) > 0) 
+		{	
+			// when in range, the center must be close enough to range center:
+			len = _cal_line_length(left_center, p);
+			if(len <= left_max_len)
+			{
+				left_eye_rect.push_back(eye_rects[i]);
+				left_eye_center.push_back(p);
+			}
+		}
+		if(cv::pointPolygonTest(right_range, p, false) > 0)
+		{
+			// when in range, the center must be close enough to range center:
+			len = _cal_line_length(right_center, p);
+			if(len <= right_max_len)
+			{
+				right_eye_rect.push_back(eye_rects[i]);
+				right_eye_center.push_back(p);
+			}
+		}
+	}
+	//cout << "left eye size = " << left_eye_center.size() << endl;
+	//cout << "right eye size = " << right_eye_center.size() << endl;
+
+	// check:
+	if(left_eye_center.size() < 1)
+	{
+		cout << "Error: no left eye." << endl;
+		return false;
+	}
+	if(right_eye_center.size() < 1)
+	{
+		cout << "Error: no right eye." << endl;
+		return false;
+	}
+	size_t valid_left_index = 0;
+	size_t valid_right_index = 0;
+	if(left_eye_center.size() > 1) // we have to remove the wrong one:
+	{
+		// calculate left range center:
+		double min_len = _cal_line_length(left_center, left_eye_center[valid_left_index]);
+		for(size_t i=1; i<left_eye_center.size(); ++i)
+		{
+			len = _cal_line_length(left_center, left_eye_center[i]);
+			if(len < min_len)
+			{
+				min_len = len;
+				valid_left_index = i;
+			}
+		}
+		//cout << "valid left index = " << valid_left_index << endl;
+	}
+	if(right_eye_center.size() > 1)  // we have to remove the wrong one:
+	{
+		// calculate right range center:
+		double min_len = _cal_line_length(right_center, right_eye_center[valid_right_index]);
+		for(size_t i=1; i<right_eye_center.size(); ++i)
+		{
+			len = _cal_line_length(right_center, right_eye_center[i]);
+			if(len < min_len)
+			{
+				min_len = len;
+				valid_right_index = i;
+			}
+		}
+		//cout << "valid right index = " << valid_right_index << endl;
+	}
+
+	// here, left have one, right have one, which we want...
+	eye_rects.clear();
+	eye_rects.push_back(left_eye_rect[0]);
+	eye_rects.push_back(right_eye_rect[0]);
+
+	return true;
+}
+
 // create normalized face, migarted from Keven's code:
 static bool _create_one_norm_face(	size_t face_index, 
 									Mat& gray_frame, 
@@ -308,20 +462,18 @@ static bool _create_one_norm_face(	size_t face_index,
 	//cout << "step 2: detect eyes using opencv." << endl;
 	vector<Rect> EyeRect;
 	eye_detector.detectMultiScale(face_image, EyeRect, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(10, 10));
-	if(EyeRect.size() != 2) 
+	//cout << "Eye size = " << EyeRect.size() << endl;
+	if(!_really_eyes(EyeRect, face_rect, CurFaceInfo[face_index]._old_corners))
 	{
+		// detect glasses:
 		EyeRect.clear();
 		glasses_detector.detectMultiScale(face_image, EyeRect, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(10, 10));
-		if(EyeRect.size() != 2)
+		//cout << "Glasses eye size = " << EyeRect.size() << endl;
+		if(!_really_eyes(EyeRect, face_rect, CurFaceInfo[face_index]._old_corners))
 		{
-			cout << "Error: EyeRect.size() = " << EyeRect.size() << endl;
+			cout << "Error: not really eyes detected." << endl;
 			return false;
 		}
-	}
-	if(_rect_overlap(EyeRect[0], EyeRect[1]))
-	{
-		cout << "Error: two eyes too close." << endl;
-		return false;
 	}
 	//for(size_t i=0; i<EyeRect.size(); ++i)
 	//	rectangle(face_image, EyeRect[i], Scalar(255), 2, 8);
@@ -370,12 +522,12 @@ static bool _create_one_norm_face(	size_t face_index,
 	SET_MAX(EyeRect[idx1].width, (face_image.cols - EyeRect[idx1].x));
 	EyeRect[idx1].height = eye_region_height;
 	SET_MAX(EyeRect[idx1].height, (face_image.rows - EyeRect[idx1].y));
-	if(_rect_overlap(EyeRect[idx0], EyeRect[idx1], (eye_region_width/8 + eye_region_height/8)/2))
+	if(_rect_overlap(EyeRect[idx0], EyeRect[idx1], (eye_region_width/2.1 + eye_region_height/2.1)/2.0))
 	{
 		rectangle(show_face, EyeRect[idx0], Scalar(255), 1, 8, 0);
 		rectangle(show_face, EyeRect[idx1], Scalar(255), 1, 8, 0);
 		imshow("eye1", show_face);
-		cout << "Error: two eyes too close - 2." << endl;
+		cout << "Error: two eyes too close." << endl;
 		return false;
 	}
 	Point leftPupil = findEyeCenter(face_image.clone(), EyeRect[idx0], "Left Eye");
@@ -482,6 +634,7 @@ static void _create_norm_faces(Mat& gray_frame, CascadeClassifier& eye_detector,
 		if(!CurFaceInfo[face_index]._valid)
 			continue;
 		
+		cout << "No." << face_index+1 << " Face -----> detect eye:" << endl;
 		// build one norm face:
 		_create_one_norm_face(face_index, gray_frame, eye_detector, glasses_detector);
 	}
@@ -494,7 +647,7 @@ static void _delete_norm_faces(void)
 	{
 		if(!CurFaceInfo[face_index]._valid)
 			continue;
-
+			
 		// build one norm face:
 		_pop_norm_face(face_index);
 	}
@@ -533,6 +686,7 @@ int main(int argc, char** argv)
 	}
 	
 	// open camera video:
+	//VideoCapture capture("test_video.avi"); // when test local video file...
 	VideoCapture capture(0); 
 	if (!capture.isOpened())
 	{
@@ -572,7 +726,7 @@ int main(int argc, char** argv)
 
 	// enter main loop:
 	int frame_no = 0, detect_cnt = 0;
-	int detect_ratio = 60;
+	int detect_ratio = 1; 
 	_reset_face_info();
 	cout << "==================== start ====================" << endl;
 	for (;;)
@@ -596,7 +750,7 @@ int main(int argc, char** argv)
 			// at least one face be tracking...
 			if(CurFaceInfo[i]._valid)
 			{
-				detect_ratio = 60;
+				detect_ratio = 10; // we accelerate detect frequecy....
 				break;
 			}
 		}
