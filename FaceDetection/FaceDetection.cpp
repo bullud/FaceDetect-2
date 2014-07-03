@@ -91,8 +91,8 @@ static void _cal_line_center(Point2f& p1, Point2f& p2, Point2f& p)
 static void _cal_polygon_center(vector<Point2f>& points, Point2f& p)
 {
 	Point2f p1, p2;
-	_cal_line_center(points[0], points[1], p1);
-	_cal_line_center(points[2], points[3], p2);
+	_cal_line_center(points[0], points[2], p1);
+	_cal_line_center(points[1], points[3], p2);
 	_cal_line_center(p1, p2, p);
 }
 
@@ -340,17 +340,25 @@ static bool _really_eyes(vector<Rect>& eye_rects, Rect& face_rect, vector<Point2
 	double left_max_len;
 	_cal_polygon_center(left_range, left_center);
 	// calculate min length required:
-	len = _cal_line_length(left_center, left_range[0]);
-	left_max_len = _cal_line_length(left_center, left_range[1]);
-	if(left_max_len > len) left_max_len = len;
-	left_max_len = left_max_len * 0.65; // 65% of center to corner..
+	left_max_len = _cal_line_length(left_center, left_range[0]);
+	for(size_t i=1; i<4; ++i)
+	{
+		len = _cal_line_length(left_center, left_range[i]);
+		if(left_max_len > len) 
+			left_max_len = len;
+	}
+	left_max_len = left_max_len * 0.65; // 65% of center to closest corner..
 	// for right eye:
 	Point2f right_center;
 	double right_max_len;
 	_cal_polygon_center(right_range, right_center);
-	len = _cal_line_length(right_center, right_range[0]);
-	right_max_len = _cal_line_length(right_center, right_range[1]);
-	if(right_max_len > len) right_max_len = len;
+	right_max_len = _cal_line_length(right_center, right_range[0]);
+	for(size_t i=1; i<4; ++i)
+	{
+		len = _cal_line_length(right_center, right_range[i]);
+		if(right_max_len > len) 
+			right_max_len = len;
+	}
 	right_max_len = right_max_len * 0.65;
 
 	// classify left eye and right eye:
