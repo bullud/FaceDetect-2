@@ -27,3 +27,5 @@ datacontext.h \
     facedetection.h
 
 FORMS    += mainwindow.ui
+
+1.QMAKE_POST_LINK=copy "$(OPENCV_DIR)\x86\vc12\bin\opencv_highgui249.dll" "$(DESTDIR)"
