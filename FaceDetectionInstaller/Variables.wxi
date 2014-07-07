@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Include>
-  <?if $(var.Platform) = "X64" ?>
+  <?if $(var.Platform) = "X64" or $(var.Platform) = "x64" ?>
     <?define ProductName = "Product Name (64 bit)" ?>
     <?define Win64 = "yes" ?>
     <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
