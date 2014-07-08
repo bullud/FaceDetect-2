@@ -6,3 +6,8 @@ QImage OpenCVUtil::CVImgToQTImg(const cv::Mat &opencvImg)
     cv::cvtColor(opencvImg, opencvImg, CV_BGR2RGB);
     return QImage((const uchar*)opencvImg.data, opencvImg.cols, opencvImg.rows, QImage::Format_RGB888);
 }
+
+QListWidgetItem *OpenCVUtil::CreateFaceItem(const cv::Mat &/*face*/)
+{
+    return nullptr;
+}

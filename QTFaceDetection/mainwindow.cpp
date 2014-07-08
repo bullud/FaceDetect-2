@@ -58,11 +58,10 @@ void MainWindow::OnTimeout()
 {
     if (!capture_.isOpened()) return;
 
+    // Capture one frame from the camera
     cv::Mat frame;
     capture_ >> frame;
 
-    cv::Mat &displayFrame = faceDetection_.DetectFace(frame, cv::Mat());
-
-    QImage qimage(OpenCVUtil::CVImgToQTImg(displayFrame));
-    ui->canvas->setPixmap(QPixmap::fromImage(qimage));
+    // Render the frame
+    ui->canvas->setPixmap(QPixmap::fromImage(OpenCVUtil::CVImgToQTImg(faceDetection_.DetectFace(frame, cv::Mat()))));
 }
