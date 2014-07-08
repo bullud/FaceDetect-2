@@ -1,4 +1,6 @@
 #include "stdafx.h"
+#include "windows.h"
+#include "atlstr.h"
 #include <iostream>
 
 #include <opencv2/core/core.hpp>        // Basic OpenCV structures (cv::Mat, Scalar)
@@ -10,6 +12,7 @@
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/nonfree/features2d.hpp"
+#include "opencv2/contrib/contrib.hpp"
 
 #include "source_lib/constants.h"	
 #include "source_lib/findEyeCenter.h"
@@ -19,6 +22,7 @@ using namespace std;
 
 #define MAX_FACES			5		// max support detected faces
 #define MIN_COUNT			15		// min key points gate (can not too small)
+#define SIMILAR_GATE		0.3		// max similar level (can not too large)
 
 static char WIN_NAME[] = "Face Tracking";
 static RNG rng(12345);
@@ -111,6 +115,29 @@ static double _cal_line_length(Point2f& p1, Point2f& p2)
 	return (double)sqrt(dx*dx+dy*dy);  
 }
 
+// create directory:
+static bool _create_directory(const CString& dir_path)
+{
+	WIN32_FIND_DATA wfd; 
+	if(FindFirstFile(dir_path, &wfd) == INVALID_HANDLE_VALUE || !(wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))  
+	{  
+		CreateDirectory((LPCTSTR)dir_path, NULL);
+		return true;
+	}  
+	return false;
+}
+
+// judge if the target file exist or not:
+static bool _file_exist(const CString& file_path)
+{
+	WIN32_FIND_DATA wfd; 
+	if(FindFirstFile(file_path, &wfd) != INVALID_HANDLE_VALUE && !(wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))  
+	{  
+		return true;
+	}  
+	return false;
+}
+
 ///////////////////////////////////////////////// Face Detection/Tracking ///////////////////////////////////////////////////
 
 // structure to describe face:
@@ -122,6 +149,8 @@ struct face_descriptor
 	vector<Point2f> _old_points;
 	vector<Point2f> _cur_points;
 	vector<Point2f> _old_corners;
+	bool _recognized;
+	int _label;
 };
 
 // face desciptors:
@@ -136,6 +165,7 @@ static void _reset_face_info()
 		CurFaceInfo[i]._old_points.clear();
 		CurFaceInfo[i]._cur_points.clear();
 		CurFaceInfo[i]._old_corners.clear();
+		CurFaceInfo[i]._recognized = false;
 	}
 }
 
@@ -453,7 +483,8 @@ static bool _really_eyes(vector<Rect>& eye_rects, Rect& face_rect, vector<Point2
 static bool _create_one_norm_face(	size_t face_index, 
 									Mat& gray_frame, 
 									CascadeClassifier& eye_detector, 
-									CascadeClassifier& glasses_detector)
+									CascadeClassifier& glasses_detector,
+									Mat& wholeFace)
 {
 	// 1. create face image:
 	//cout << "step 1: create face image." << endl;
@@ -556,7 +587,7 @@ static bool _create_one_norm_face(	size_t face_index,
 	rectangle(show_face, EyeRect[idx1], Scalar(255), 1, 8, 0);
 	circle(show_face, leftEye, 3, 1234);
 	circle(show_face, rightEye, 3, 1234);
-	imshow("eye1", show_face);
+	//imshow("eye1", show_face);
 
 	// 4. geometric transform
 	//cout << "step 4: geometric transform." << endl;
@@ -582,8 +613,8 @@ static bool _create_one_norm_face(	size_t face_index,
 	//cout << "step 5: equalization." << endl;
 	int w = warped.cols;
 	int h = warped.rows;
-	Mat wholeFace;
 	equalizeHist(warped,wholeFace);
+	/*
 	int midX = w/2;
 	Mat leftSide = warped(Rect(0,0,midX,h));
 	Mat rightSide = warped(Rect(midX,0,w-midX,h));
@@ -615,6 +646,7 @@ static bool _create_one_norm_face(	size_t face_index,
 			face_image.at<uchar>(y,x) = v;
 		}
 	}
+	*/
 	//imshow("Equalzed",wholeFace);
 
 	// 6. elliptical mask
@@ -627,14 +659,12 @@ static bool _create_one_norm_face(	size_t face_index,
 	ellipse(mask,faceCenter,size,0,0,360,Scalar(0),CV_FILLED);
 	wholeFace.setTo(Scalar(128),mask);
 	//imshow("Processed",wholeFace);
-
-	// OK! we get the normalized face, record it:
-	_push_norm_face(face_index, wholeFace);
-
+	
+	cout << "create one normalized face success!" << endl;
 	return true;
 }
 
-static void _create_norm_faces(Mat& gray_frame, CascadeClassifier& eye_detector, CascadeClassifier glasses_detector)
+static void _create_norm_faces(Mat& gray_frame, CascadeClassifier& eye_detector, CascadeClassifier& glasses_detector)
 {
 	// currently, we only add the first detected face:
 	for(size_t face_index=0; face_index<MAX_FACES; ++face_index)
@@ -644,7 +674,12 @@ static void _create_norm_faces(Mat& gray_frame, CascadeClassifier& eye_detector,
 		
 		cout << "No." << face_index+1 << " Face -----> detect eye:" << endl;
 		// build one norm face:
-		_create_one_norm_face(face_index, gray_frame, eye_detector, glasses_detector);
+		Mat whole_face;
+		if(_create_one_norm_face(face_index, gray_frame, eye_detector, glasses_detector, whole_face))
+		{
+			// OK! we get the normalized face, record it:
+			_push_norm_face(face_index, whole_face);
+		}
 	}
 }
 
@@ -659,6 +694,205 @@ static void _delete_norm_faces(void)
 		// build one norm face:
 		_pop_norm_face(face_index);
 	}
+}
+
+static void _save_norm_faces(const CString& top_folder)
+{
+	CString sub_folder, file_name;
+	cout << "save captured norm faces into file..." << endl;
+	USES_CONVERSION;
+	int lib_index = 1;
+	for(size_t face_index=0; face_index<MAX_FACES; ++face_index)
+	{
+		if(NormFaceInfo[face_index].empty())
+			continue;
+
+		// create top folder:
+		while(1)
+		{
+			sub_folder.Format(_T("%s/s%d"), top_folder, lib_index);
+			if(_create_directory(sub_folder))
+				break;
+			lib_index++;
+		}
+
+		for(size_t i=0; i<NormFaceInfo[face_index].size(); ++i)
+		{
+			file_name.Format(_T("%s/%d.pgm"), sub_folder, i+1);
+			imwrite(W2A(file_name), NormFaceInfo[face_index][i]._image);
+		}
+	}
+}
+
+////////////////////////////////////////////// Face Recognize /////////////////////////////////////////////////////
+
+static Mat _reconstruct_face(const Ptr<FaceRecognizer> model, const Mat preprocessedFace)
+{
+	// Since we can only reconstruct the face for some types of FaceRecognizer models (ie: Eigenfaces or Fisherfaces),
+	// we should surround the OpenCV calls by a try/catch block so we don't crash for other models.
+	try {
+
+		// Get some required data from the FaceRecognizer model.
+		Mat eigenvectors = model->get<Mat>("eigenvectors");
+		Mat averageFaceRow = model->get<Mat>("mean");
+
+		int faceHeight = preprocessedFace.rows;
+
+		// Project the input image onto the PCA subspace.
+		Mat projection = subspaceProject(eigenvectors, averageFaceRow, preprocessedFace.reshape(1,1));
+		//printMatInfo(projection, "projection");
+
+		// Generate the reconstructed face back from the PCA subspace.
+		Mat reconstructionRow = subspaceReconstruct(eigenvectors, averageFaceRow, projection);
+		//printMatInfo(reconstructionRow, "reconstructionRow");
+
+		// Convert the float row matrix to a regular 8-bit image. Note that we
+		// shouldn't use "getImageFrom1DFloatMat()" because we don't want to normalize
+		// the data since it is already at the perfect scale.
+
+		// Make it a rectangular shaped image instead of a single row.
+		Mat reconstructionMat = reconstructionRow.reshape(1, faceHeight);
+		// Convert the floating-point pixels to regular 8-bit uchar pixels.
+		Mat reconstructedFace = Mat(reconstructionMat.size(), CV_8U);
+		reconstructionMat.convertTo(reconstructedFace, CV_8U, 1, 0);
+		//printMatInfo(reconstructedFace, "reconstructedFace");
+
+		return reconstructedFace;
+
+	} catch (cv::Exception e) {
+		//cout << "WARNING: Missing FaceRecognizer properties." << endl;
+		return Mat();
+	}
+}
+
+static double _get_similarity(const Mat A, const Mat B)
+{
+	if (A.rows > 0 && A.rows == B.rows && A.cols > 0 && A.cols == B.cols) {
+		// Calculate the L2 relative error between the 2 images.
+		double errorL2 = norm(A, B, CV_L2);
+		// Convert to a reasonable scale, since L2 error is summed across all pixels of the image.
+		double similarity = errorL2 / (double)(A.rows * A.cols);
+		return similarity;
+	}
+	else {
+		//cout << "WARNING: Images have a different size in 'getSimilarity()'." << endl;
+		return 100000000.0;  // Return a bad value
+	}
+}
+
+static bool _recognize_one_face(Ptr<FaceRecognizer>& model, Mat& target_face, CString& top_folder, int& label)
+{
+	//recognize:
+	int identity = model->predict(target_face);
+	cout << "identity = " << identity << endl;
+	//validation:
+	Mat reconstructedFace = _reconstruct_face(model, target_face); 
+	//imshow("reconstructed", reconstructedFace);
+	double gate = _get_similarity(target_face, reconstructedFace);
+	cout<< "similarity = " << gate << " (gate = " << SIMILAR_GATE << ")" << endl;
+	if(gate < SIMILAR_GATE)
+	{
+		label = identity;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+static bool _recognize_faces(Mat& gray_frame, 
+							 CascadeClassifier& eye_detector, 
+							 CascadeClassifier& glasses_detector, 
+							 CString& top_folder, 
+							 Ptr<FaceRecognizer>& model)
+{
+	if(model.empty())
+	{
+		cout << "model empty, need init" << endl;
+		vector<Mat> faces;
+		vector<int> labels;
+		bool no_file_flag = false;
+		USES_CONVERSION;
+		for(int k=1; true; k++){
+			string pathname = W2A(top_folder + _T("/s"));
+			char tmp[10];
+			_itoa_s(k,tmp,10);
+			pathname = pathname + tmp + "/";
+			int i;
+			for(i=1; true; i++){
+				char s[10];
+				_itoa_s(i,s,10);
+				string filename = pathname + s + ".pgm";
+				cout << filename.c_str() << endl;
+				if(!_file_exist(A2W(filename.c_str())))
+					break;
+				Mat face = imread(filename,CV_LOAD_IMAGE_GRAYSCALE);
+				faces.push_back(face);
+				labels.push_back(k);
+			}
+			if(i==1)
+				break;
+		}
+		if(faces.size() <= 1)
+		{
+			cout << "Error: faces not enough! - size = " << faces.size() << endl;
+			return false;
+		}	
+		cout << "faces for recognize = " << faces.size() << endl;
+
+		// init module:
+		bool haveContribModule = initModule_contrib();
+		if (!haveContribModule) 
+		{
+			cout << "Error: The 'contrib' module is needed for FaceRecognizer but has not been loaded into OpenCV!" << endl;
+			return false;
+		}
+
+		string facerecAlgorithm = "FaceRecognizer.Eigenfaces";
+		model = Algorithm::create<FaceRecognizer>(facerecAlgorithm);
+		if(model.empty())
+		{
+			cout << "Error : no such algorithm" << endl;
+			return false;
+		}
+		model->train(faces,labels);
+	}
+
+	// ok, let's perdict:
+	int recognized = 0;
+	for(size_t face_index=0; face_index<MAX_FACES; ++face_index)
+	{
+		if(!CurFaceInfo[face_index]._valid)
+			continue;
+		if(CurFaceInfo[face_index]._recognized)
+		{
+			recognized++;
+			continue;
+		}
+		
+		// build one norm face:
+		Mat whole_face;
+		if(!_create_one_norm_face(face_index, gray_frame, eye_detector, glasses_detector, whole_face))
+		{
+			// can not create normalized face, go to next...
+			cout << "failed to create normalized face." << endl;
+			continue;
+		}
+
+		// OK, let's predict:
+		int label = -1;
+		if(_recognize_one_face(model, whole_face, top_folder, label))
+		{
+			CurFaceInfo[face_index]._recognized = true;
+			CurFaceInfo[face_index]._label = label;
+			recognized++;
+		}
+	}
+
+	cout << "Status: recognized face size = " << recognized << endl;
+
+	return true;
 }
 
 ///////////////////////////////////////////////// Main Entry //////////////////////////////////////////////////////
@@ -692,6 +926,15 @@ int main(int argc, char** argv)
 		cout << "Cannot load glasses cascade file.\n";
 		return -1;
 	}
+	
+	// face recognize init:
+	Ptr<FaceRecognizer> model;
+	vector<Mat> rec_faces;
+	vector<int> rec_labels;
+	CString top_folder;
+	bool do_recognize = false;
+	top_folder.Format(_T("./face_database"));
+	_create_directory(top_folder);
 	
 	// open camera video:
 	//VideoCapture capture("test_video.avi"); // when test local video file...
@@ -735,6 +978,8 @@ int main(int argc, char** argv)
 	// enter main loop:
 	int frame_no = 0, detect_cnt = 0;
 	int detect_ratio = 1; 
+	int recognize_ratio = 5;
+	Scalar color(0, 255, 0);
 	_reset_face_info();
 	cout << "==================== start ====================" << endl;
 	for (;;)
@@ -813,6 +1058,7 @@ int main(int argc, char** argv)
 				CurFaceInfo[free_index]._face_rect = Faces[i];
 				CurFaceInfo[free_index]._mask_roi = mask_roi[i];
 				CurFaceInfo[free_index]._old_points.clear(); // new-valid node, clear old_points! important!
+				CurFaceInfo[free_index]._recognized = false; // clear flag!!!
 
 				// detect keypoints:
 				_detect_keypoints(	target_frame, 
@@ -898,11 +1144,14 @@ TRACK_FACE:
 				}
 				else
 				{
+					// check if need recognize:
+					color = CurFaceInfo[face_index]._recognized ? Scalar(0, 0, 255) : Scalar(0, 255, 0);
+					
 					//-- Draw lines between the corners (the mapped object in the scene - image_2 )
-					line(target_frame, cur_corners[0], cur_corners[1], Scalar(0, 255, 0), 2);
-					line(target_frame, cur_corners[1], cur_corners[2], Scalar(0, 255, 0), 2);
-					line(target_frame, cur_corners[2], cur_corners[3], Scalar(0, 255, 0), 2);
-					line(target_frame, cur_corners[3], cur_corners[0], Scalar(0, 255, 0), 2);
+					line(target_frame, cur_corners[0], cur_corners[1], color, 2);
+					line(target_frame, cur_corners[1], cur_corners[2], color, 2);
+					line(target_frame, cur_corners[2], cur_corners[3], color, 2);
+					line(target_frame, cur_corners[3], cur_corners[0], color, 2);
 
 					// update previous cornners:
 					CurFaceInfo[face_index]._old_corners[0] = cur_corners[0];
@@ -926,6 +1175,7 @@ TRACK_FACE:
 			{
 				//cout << face_index << ": keypoints too little - size() = " << CurFaceInfo[face_index]._cur_points.size() << endl;
 				CurFaceInfo[face_index]._valid = false; // free node
+				CurFaceInfo[face_index]._recognized = false;
 			}
 			else
 			{
@@ -937,6 +1187,20 @@ TRACK_FACE:
 		imshow(WIN_NAME, target_frame);
 		frame_no++;
 		//cout << "frame - " << frame_no << endl;
+		
+		// check if need auto-recognize:
+		if(do_recognize)
+		{
+			recognize_ratio = 10;
+			if((frame_no % recognize_ratio) == 0)
+				_recognize_faces(norm_gray_frame, eye_cascade, glasses_cascade, top_folder, model);
+		}
+		else
+		{
+			// clear flag:
+			for(size_t i=0; i<MAX_FACES; ++i)
+				CurFaceInfo[i]._recognized = false;
+		}
 
 		switch(waitKey(16))
 		{
@@ -949,6 +1213,20 @@ TRACK_FACE:
 		case 'D':
 			// delete exist normalized face:
 			_delete_norm_faces();
+			break;
+		case 's':
+		case 'S':
+			// save the detected normalized face into database:
+			_save_norm_faces(top_folder);
+			break;
+		case 'r':
+		case 'R':
+			// start recognizing...
+			do_recognize = true;
+			break;
+		case 'e':
+		case 'E':
+			do_recognize = false;
 			break;
 		case ' ':
 			// exit program:
