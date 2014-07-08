@@ -10,9 +10,6 @@ enum MODE
 class DataContext
 {
 public:
-    DataContext();
-
-public:
     MODE GetMode() { return mode_; }
     void SetMode(MODE mode) { mode_ = mode; }
 

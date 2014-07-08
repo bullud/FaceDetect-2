@@ -6,8 +6,6 @@
 class FaceDetection
 {
 public:
-    FaceDetection();
-
     cv::Mat CreateFaceTemplate(const cv::Mat &frame);
     cv::Mat &DetectFace(cv::Mat &frame, const cv::Mat &face);
 };

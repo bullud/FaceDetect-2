@@ -1,8 +1,14 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "facedetection.h"
 #include "datacontext.h"
+
 #include <QMainWindow>
+#include <QTimer>
+
+#include <opencv2/highgui/highgui.hpp>
+
 #include <memory>
 
 namespace Ui {
@@ -22,9 +28,13 @@ private:
 
 private:
     DataContext dataContext_;
+    cv::VideoCapture capture_;
+    FaceDetection faceDetection_;
+    QTimer timer_;
 
 private slots:
     void OnToggleMode();
+    void OnTimeout();
 };
 
 #endif // MAINWINDOW_H

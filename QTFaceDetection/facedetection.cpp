@@ -1,9 +1,5 @@
 #include "facedetection.h"
 
-FaceDetection::FaceDetection()
-{
-}
-
 cv::Mat FaceDetection::CreateFaceTemplate(const cv::Mat &/*frame*/)
 {
     return cv::Mat();
