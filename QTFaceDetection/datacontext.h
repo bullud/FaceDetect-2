@@ -3,8 +3,9 @@
 
 enum MODE
 {
-    CREATION,
-    DETECTION
+    TEMPLATE,
+    DETECTION,
+    RECORD
 };
 
 class DataContext
@@ -14,7 +15,7 @@ public:
     void SetMode(MODE mode) { mode_ = mode; }
 
 private:
-    MODE mode_ = CREATION;
+    MODE mode_ = TEMPLATE;
 };
 
 #endif // DATACONTEXT_H

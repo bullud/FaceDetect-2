@@ -13,9 +13,12 @@ TEMPLATE = app
 
 INCLUDEPATH+=$(OPENCV_DIR)\include
 
-LIBS+=$(OPENCV_DIR)\x86\vc12\lib\*.lib
+LIBS+=$(OPENCV_DIR)\x86\vc12\lib\*d.lib
+#LIBS+=$(OPENCV_DIR)\x86\vc12\lib\opencv_core249d.lib \
+#$(OPENCV_DIR)\x86\vc12\lib\opencv_highgui249d.lib \
+#$(OPENCV_DIR)\x86\vc12\lib\opencv_imgproc249d.lib
 
-SOURCES += main.cpp\
+SOURCES += main.cpp \
 mainwindow.cpp \
 datacontext.cpp \
     opencvutil.cpp \
@@ -28,4 +31,3 @@ datacontext.h \
 
 FORMS    += mainwindow.ui
 
-1.QMAKE_POST_LINK=copy "$(OPENCV_DIR)\x86\vc12\bin\opencv_highgui249.dll" "$(DESTDIR)"

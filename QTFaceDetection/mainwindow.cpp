@@ -2,33 +2,21 @@
 #include "ui_mainwindow.h"
 #include "opencvutil.h"
 #include <QMessageBox>
+#include <QDebug>
+#include <cassert>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     timer_(this),
-    capture_(0)
+    capture_(0),
+    actionGroup(new QActionGroup(this))
 {
     ui->setupUi(this);
 
-    ui->radioButtonCreation->setChecked(dataContext_.GetMode() == CREATION);
-
-    connect(
-        ui->radioButtonCreation,
-        SIGNAL(clicked()),
-        this,
-        SLOT(OnToggleMode()));
-    connect(
-        ui->radioButtonDetection,
-        SIGNAL(clicked()),
-        this,
-        SLOT(OnToggleMode()));
-    connect(
-        &timer_,
-        SIGNAL(timeout()),
-        this,
-        SLOT(OnTimeout())
-        );
+    actionGroup->addAction(ui->faceTemplate);
+    actionGroup->addAction(ui->faceRecognition);
+    actionGroup->addAction(ui->videoRecord);
 
     if (!capture_.isOpened())
     {
@@ -40,18 +28,56 @@ MainWindow::MainWindow(QWidget *parent) :
             QMessageBox::Yes);
     }
 
+    connect(actionGroup.get(), SIGNAL(triggered(QAction*)), this, SLOT(selectMode(QAction*)));
+
+    switch (dataContext_.GetMode())
+    {
+    case TEMPLATE:
+        ui->faceTemplate->trigger();
+        break;
+    case DETECTION:
+        ui->faceRecognition->trigger();
+        break;
+    case RECORD:
+        ui->videoRecord->trigger();
+        break;
+    default:
+        assert(0);
+    }
+
+    connect(&timer_, SIGNAL(timeout()), this, SLOT(OnTimeout()));
     timer_.start(50);
 }
 
 MainWindow::~MainWindow()
 {
+    delete ui;
 }
 
-void MainWindow::OnToggleMode()
+void MainWindow::selectMode(QAction *action)
 {
-    dataContext_.SetMode(
-        ui->radioButtonCreation->isChecked()?
-        CREATION : DETECTION);
+    if (action == ui->faceTemplate)
+    {
+        dataContext_.SetMode(TEMPLATE);
+        ui->groupBoxVideoRecord->hide();
+        ui->groupBoxFaceTempalte->show();
+    }
+    else if (action == ui->faceRecognition)
+    {
+        dataContext_.SetMode(DETECTION);
+        ui->groupBoxVideoRecord->hide();
+        ui->groupBoxFaceTempalte->show();
+    }
+    else if (action == ui->videoRecord)
+    {
+        dataContext_.SetMode(RECORD);
+        ui->groupBoxVideoRecord->show();
+        ui->groupBoxFaceTempalte->hide();
+    }
+    else
+        assert(0);
+
+    qDebug() << dataContext_.GetMode();
 }
 
 void MainWindow::OnTimeout()
@@ -64,4 +90,9 @@ void MainWindow::OnTimeout()
 
     // Render the frame
     ui->canvas->setPixmap(QPixmap::fromImage(OpenCVUtil::CVImgToQTImg(faceDetection_.DetectFace(frame, cv::Mat()))));
+}
+
+void MainWindow::on_menuFileExit_triggered()
+{
+    QWidget::close();
 }

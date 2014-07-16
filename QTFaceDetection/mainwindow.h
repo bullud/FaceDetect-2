@@ -5,6 +5,7 @@
 #include "datacontext.h"
 
 #include <QMainWindow>
+#include <QActionGroup>
 #include <QTimer>
 
 #include <opencv2/highgui/highgui.hpp>
@@ -24,17 +25,19 @@ public:
     ~MainWindow();
 
 private:
-    std::unique_ptr<Ui::MainWindow> ui;
+    Ui::MainWindow *ui;
 
 private:
     DataContext dataContext_;
     FaceDetection faceDetection_;
     cv::VideoCapture capture_;
     QTimer timer_;
+    std::unique_ptr<QActionGroup> actionGroup;
 
 private slots:
-    void OnToggleMode();
     void OnTimeout();
+    void selectMode(QAction *action);
+    void on_menuFileExit_triggered();
 };
 
 #endif // MAINWINDOW_H
