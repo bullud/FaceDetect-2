@@ -34,10 +34,14 @@ private:
     QTimer timer_;
     std::unique_ptr<QActionGroup> actionGroup;
 
+    cv::VideoWriter *videoWriter_;
+
 private slots:
     void OnTimeout();
     void selectMode(QAction *action);
     void on_menuFileExit_triggered();
+    void on_pushButton_clicked();
+    void on_pushButton_2_clicked();
 };
 
 #endif // MAINWINDOW_H

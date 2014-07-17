@@ -1,16 +1,20 @@
-#include "mainwindow.h"
+﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "opencvutil.h"
 #include <QMessageBox>
-#include <QDebug>
+#include <QFileDialog>
+#include <string>
 #include <cassert>
+
+using std::string;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     timer_(this),
     capture_(0),
-    actionGroup(new QActionGroup(this))
+    actionGroup(new QActionGroup(this)),
+    videoWriter_(nullptr)
 {
     ui->setupUi(this);
 
@@ -21,9 +25,9 @@ MainWindow::MainWindow(QWidget *parent) :
     if (!capture_.isOpened())
     {
         QMessageBox::critical(
-            NULL,
-            "Critical",
-            "The camera can't be opened!",
+            this,
+            QStringLiteral("错误"),
+            QStringLiteral("无法打开摄像头"),
             QMessageBox::Yes,
             QMessageBox::Yes);
     }
@@ -45,12 +49,22 @@ MainWindow::MainWindow(QWidget *parent) :
         assert(0);
     }
 
+    if (dataContext_.GetRecordStatus())
+    {
+        ui->pushButton_2->setText(QStringLiteral("停止录像"));
+    }
+    else
+    {
+        ui->pushButton_2->setText(QStringLiteral("开始录像"));
+    }
+
     connect(&timer_, SIGNAL(timeout()), this, SLOT(OnTimeout()));
     timer_.start(50);
 }
 
 MainWindow::~MainWindow()
 {
+    delete videoWriter_;
     delete ui;
 }
 
@@ -76,8 +90,6 @@ void MainWindow::selectMode(QAction *action)
     }
     else
         assert(0);
-
-    qDebug() << dataContext_.GetMode();
 }
 
 void MainWindow::OnTimeout()
@@ -88,6 +100,13 @@ void MainWindow::OnTimeout()
     cv::Mat frame;
     capture_ >> frame;
 
+    if (dataContext_.GetRecordStatus())
+    {
+        assert(videoWriter_ != nullptr);
+        assert(dataContext_.GetMode() == RECORD);
+        *videoWriter_ << frame;
+    }
+
     // Render the frame
     ui->canvas->setPixmap(QPixmap::fromImage(OpenCVUtil::CVImgToQTImg(faceDetection_.DetectFace(frame, cv::Mat()))));
 }
@@ -95,4 +114,60 @@ void MainWindow::OnTimeout()
 void MainWindow::on_menuFileExit_triggered()
 {
     QWidget::close();
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    assert(dataContext_.GetMode() == RECORD);
+
+    QFileDialog fd(this, QStringLiteral("选择录像文件"), ".", QStringLiteral("视频文件(*.avi)"));
+    fd.setFileMode(QFileDialog::AnyFile);
+    if(fd.exec() != QDialog::Accepted)
+        return;
+
+    ui->lineEditRecordPath->setText(fd.selectedFiles()[0]);
+}
+
+void MainWindow::on_pushButton_2_clicked()
+{
+    assert(dataContext_.GetMode() == RECORD);
+
+    dataContext_.SetRecordStatus(!dataContext_.GetRecordStatus());
+
+    if (dataContext_.GetRecordStatus())
+    {
+        assert(videoWriter_ == nullptr);
+        videoWriter_ = new cv::VideoWriter();
+        const string path = ui->lineEditRecordPath->text().toUtf8().constData();   // Form the new name with container
+
+        cv::Size S = cv::Size(capture_.get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
+                      capture_.get(CV_CAP_PROP_FRAME_HEIGHT));
+
+        videoWriter_->open(path, -1/*capture_.get(CV_CAP_PROP_FOURCC)*/, capture_.get(CV_CAP_PROP_FPS), S, true);
+
+        if (!videoWriter_->isOpened())
+        {
+            QMessageBox::critical(
+                this,
+                QStringLiteral("错误"),
+                QStringLiteral("无法打开写入文件"),
+                QMessageBox::Yes,
+                QMessageBox::Yes);
+            delete videoWriter_;
+            videoWriter_ = nullptr;
+            dataContext_.SetRecordStatus(!dataContext_.GetRecordStatus());
+            return;
+        }
+
+        ui->pushButton_2->setText(QStringLiteral("停止录像"));
+    }
+    else
+    {
+        ui->pushButton_2->setText(QStringLiteral("开始录像"));
+
+        assert(videoWriter_ != nullptr);
+        delete videoWriter_;
+        videoWriter_ = nullptr;
+    }
+
 }
