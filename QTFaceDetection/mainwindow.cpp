@@ -74,7 +74,7 @@ void MainWindow::selectMode(QAction *action)
     {
         dataContext_.SetMode(TEMPLATE);
         ui->groupBoxVideoRecord->hide();
-        ui->groupBoxFaceTempalte->show();
+        ui->groupBoxFaceTempalte->hide();
     }
     else if (action == ui->faceRecognition)
     {
