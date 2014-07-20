@@ -6,10 +6,17 @@
 class FaceDetection
 {
 public:
-    cv::Mat CreateFaceTemplate(const cv::Mat &frame);
-    cv::Mat &DetectFace(cv::Mat &frame, const cv::Mat &face);
-
-    bool IsEquivalent(const cv::Mat &face0, const cv::Mat &face1);
+    // external interface...
+    bool Initialize(Size& screen_size, string face_database_folder);
+    void Deinitialize(void);
+    bool DetectFace(Mat& frame, size_t frame_no);           // just detect face, not to be used in out demo...
+    bool CreateFaceTemplate(Mat& frame, size_t frame_no);   // create face template...
+    bool RecognizeFace(Mat& frame, size_t frame_no, Mat& recognized_face);  // recognize face...
+public:
+    // call this to check current face information...
+    struct face_descriptor const* GetCurFaceInfo() {
+        return CurFaceInfo;
+    }
 };
 
 #endif // FACEDETECTION_H

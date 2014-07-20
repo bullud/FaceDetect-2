@@ -1,16 +1,26 @@
 #include "facedetection.h"
 
-cv::Mat FaceDetection::CreateFaceTemplate(const cv::Mat &/*frame*/)
+bool FaceDetection::Initialize(Size& screen_size, string face_database_folder)
 {
-    return cv::Mat();
+	return true;
 }
 
-cv::Mat &FaceDetection::DetectFace(cv::Mat &frame, const cv::Mat &/*face*/)
+void FaceDetection::Deinitialize(void)
 {
-    return frame;
+	
 }
 
-bool FaceDetection::IsEquivalent(const cv::Mat &/*face0*/, const cv::Mat &/*face1*/)
+bool FaceDetection::DetectFace(Mat& frame, size_t frame_no)
 {
-    return true;
+	return true;
+}
+
+bool FaceDetection::CreateFaceTemplate(Mat& frame, size_t frame_no)
+{
+	return true;
+}
+
+bool FaceDetection::RecognizeFace(Mat& frame, size_t frame_no, Mat& recognized_face)
+{
+	return true;
 }
