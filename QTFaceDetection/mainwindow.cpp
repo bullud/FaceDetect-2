@@ -106,6 +106,43 @@ void MainWindow::OnTimeout()
         assert(dataContext_.GetMode() == RECORD);
         *videoWriter_ << frame;
     }
+	
+	/**
+	 * just show how to use FaceDetecction class:
+	 * option-1: just for test
+	 * option-2: 人脸建模模式
+	 * option-3: 人脸识别模式
+	 */
+	 // option-1: just detect/track faces
+    /*
+    faceDetection_.DetectFace(frame, frame_index_);
+    */
+    // option-2: create face templates automatically
+    /*
+    if(faceDetection_.CreateFaceTemplate(frame, frame_index_, bfirst_))
+    {
+        QMessageBox::critical(this,
+                              "Critical",
+                              "Face Template Create Complete!",
+                              QMessageBox::Yes,
+                              QMessageBox::Yes);
+        bfirst_ = true;
+    }
+    else
+    {
+        bfirst_ = false;
+    }
+    */
+    // option-3: recognize faces
+    struct face_descriptor *cur_face_info;
+    if(faceDetection_.RecognizeFace(frame, frame_index_))
+    {
+        cur_face_info = faceDetection_.GetCurFaceInfo();
+        // do process...
+    }
+
+    // update frame number:
+    frame_index_++;
 
     // Render the frame
     ui->canvas->setPixmap(QPixmap::fromImage(OpenCVUtil::CVImgToQTImg(faceDetection_.DetectFace(frame, cv::Mat()))));
