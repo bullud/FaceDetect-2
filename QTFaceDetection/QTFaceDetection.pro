@@ -22,12 +22,19 @@ SOURCES += main.cpp \
 mainwindow.cpp \
 datacontext.cpp \
     opencvutil.cpp \
-    facedetection.cpp
+    facedetection.cpp \
+    source_lib/findEyeCenter.cpp \
+    source_lib/findEyeCorner.cpp \
+    source_lib/helpers.cpp
 
 HEADERS  += mainwindow.h \
 datacontext.h \
     opencvutil.h \
-    facedetection.h
+    facedetection.h \
+    source_lib/constants.h \
+    source_lib/findEyeCenter.h \
+    source_lib/findEyeCorner.h \
+    source_lib/helpers.h
 
 FORMS    += mainwindow.ui
 

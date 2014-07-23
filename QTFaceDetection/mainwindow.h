@@ -33,6 +33,8 @@ private:
     cv::VideoCapture capture_;
     QTimer timer_;
     std::unique_ptr<QActionGroup> actionGroup;
+    size_t frame_index_;
+    bool bfirst_;
 
     cv::VideoWriter *videoWriter_;
 

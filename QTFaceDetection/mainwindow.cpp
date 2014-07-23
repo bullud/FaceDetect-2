@@ -14,7 +14,9 @@ MainWindow::MainWindow(QWidget *parent) :
     timer_(this),
     capture_(0),
     actionGroup(new QActionGroup(this)),
-    videoWriter_(nullptr)
+    videoWriter_(nullptr),
+    frame_index_(0),
+    bfirst_(false)
 {
     ui->setupUi(this);
 
@@ -57,6 +59,18 @@ MainWindow::MainWindow(QWidget *parent) :
     {
         ui->pushButton_2->setText(QStringLiteral("开始录像"));
     }
+    frame_index_ = 0;
+    cv::Size screen_size(capture_.get(CV_CAP_PROP_FRAME_WIDTH), capture_.get(CV_CAP_PROP_FRAME_HEIGHT));
+    if(!faceDetection_.Initialize(screen_size, QString("./face_database")))
+    {
+        QMessageBox::critical(this,
+                              "Critical",
+                              "Failed to init face detection class!",
+                              QMessageBox::Yes,
+                              QMessageBox::Yes);
+        return;
+    }
+
 
     connect(&timer_, SIGNAL(timeout()), this, SLOT(OnTimeout()));
     timer_.start(50);
@@ -134,7 +148,7 @@ void MainWindow::OnTimeout()
     }
     */
     // option-3: recognize faces
-    struct face_descriptor *cur_face_info;
+    const struct face_descriptor *cur_face_info;
     if(faceDetection_.RecognizeFace(frame, frame_index_))
     {
         cur_face_info = faceDetection_.GetCurFaceInfo();
@@ -145,7 +159,7 @@ void MainWindow::OnTimeout()
     frame_index_++;
 
     // Render the frame
-    ui->canvas->setPixmap(QPixmap::fromImage(OpenCVUtil::CVImgToQTImg(faceDetection_.DetectFace(frame, cv::Mat()))));
+    ui->canvas->setPixmap(QPixmap::fromImage(OpenCVUtil::CVImgToQTImg(frame)));
 }
 
 void MainWindow::on_menuFileExit_triggered()
