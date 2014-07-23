@@ -58,6 +58,15 @@ struct face_descriptor
     Mat _image;                     // the face image to be displayed to user
 };
 
+// structure to describe the detect/track/recognize patameters:
+struct face_parameter{
+    size_t _max_faces;              // max faces to be detect/track/recognized
+    size_t _min_kp_count;           // min keypoints count needed for tracking
+    size_t _min_temp_faces;         // min face template the database needed for one face
+    double _similar_gate;           // for judging two faces are for same persion or not
+};
+
+
 class FaceDetection
 {
 public:
@@ -101,7 +110,7 @@ public:
      * @return true: face(s) have been recognized, otherwise false
      * @note when return true, call GetCurFaceInfo() to check which face(s) been recognized.
      */
-    bool RecognizeFace(Mat& frame, size_t frame_index);        // recognize face...
+    bool RecognizeFace(Mat& frame, size_t frame_index);
     /**
      * @brief GetCurFaceInfo: query current information, check struct face_descriptor for details
      * @return pointer to struct face_descriptor array.
@@ -109,9 +118,98 @@ public:
     struct face_descriptor const* GetCurFaceInfo() {
         return CurFaceInfo;
     }
-	
-	// ..........
-	
-}
+    /**
+     * @brief QueryParameters/ModifyParameters: check/change parameters for face detect/track/recognize
+     * @param param: check struct face_paramter for details
+     * @return none
+     */
+    void QueryParameters(struct face_parameter* param);
+    void ModifyParameters(struct face_parameter* param);
+
+protected:
+    // middle-level functions:
+    void _SetTargetFrame(Mat& frame, size_t frame_index); // set target frame to be processed
+    void _DetectFace(); // detect face, call GetCurFaceInfo() for result...
+    void _TrackFace(); // track face, call GetCurFaceInfo() for result...
+    void _RefreshFaceInfo(); // refresh CurFaceInfo...
+
+private:
+    size_t frame_no;
+    Mat target_frame;
+    Mat gray_frame;
+    Mat prev_gray_frame;
+    Mat norm_gray_frame;
+    vector<Point2f> screen_corners;
+    QString top_folder;
+    CascadeClassifier frontal_face_detector;
+    CascadeClassifier profile_face_detector;
+    GoodFeaturesToTrackDetector feature_detector;
+    CascadeClassifier normal_eye_detector;
+    CascadeClassifier glasses_eye_detector;
+    Ptr<FaceRecognizer> model;
+
+protected:
+    // helpers:
+    void _rect_to_points(Rect& rect, vector<Point2f>& points);
+    void _points_to_rect(vector<Point2f>& corners, Rect& rect);
+    bool _rect_overlap(Rect& r1, Rect& r2, double allow=0);
+    void _cal_line_center(Point2f& p1, Point2f& p2, Point2f& p);
+    void _cal_polygon_center(vector<Point2f>& points, Point2f& p);
+    void _cal_rect_center(Rect& rect, Point2f& p);
+    double _cal_line_length(Point2f& p1, Point2f& p2);
+
+protected:
+    // face detection/tracking:
+    void _build_display_image(Mat& frame, Mat& face, Rect face_rect);
+    bool _really_new_face(Rect& new_face);
+    bool _detect_faces(Mat& gray_frame, vector<Rect>& Faces);
+    bool _create_mask_rois(vector<Rect>& Faces, Size size, vector<Mat>& mask_roi);
+    bool _detect_keypoints(Mat& target_frame,
+                           Mat& mask_roi_t,
+                           Rect& Faces_t,
+                           vector<Point2f>& cur_points_t,
+                           vector<Point2f>& old_corners_t);
+protected:
+    // face normalization:
+    bool _database_updated;
+    bool _really_eyes(vector<Rect>& eye_rects, Rect& face_rect, vector<Point2f>& face_corner);
+    bool _create_one_norm_face(size_t face_index,
+                               Mat& gray_frame,
+                               Mat& wholeFace);
+    bool _save_norm_faces(size_t face_index);
+    bool _valid_norm_face(size_t face_index, Mat& new_face);
+
+protected:
+    // face recognize:
+    bool _init_face_recognizer();
+    Mat _reconstruct_face(const Mat preprocessedFace);
+    double _get_similarity(const Mat A, const Mat B);
+    bool _recognize_one_face(Mat& target_face, int& label);
+
+private:
+    struct face_descriptor *CurFaceInfo;
+    vector<Mat> *NormFaceInfo;
+    void _reset_face_info(); // reset CurFaceInfo
+    bool _find_free_node(size_t& index);
+    size_t _cur_face_count();
+    size_t _rec_face_count();
+
+private:
+    // from macro:
+    size_t MIN_KP_COUNT; // minimal keyponits count
+    size_t MAX_FACES;
+    double SIMILAR_GATE;
+    RNG RNG;
+    double DESIRED_LEFT_EYE_X;
+    double DESIRED_LEFT_EYE_Y;
+    double DESIRED_RIGHT_EYE_X;
+    double DESIRED_RIGHT_EYE_Y;
+    int DESIRED_FACE_WIDTH; // normalized face width
+    int DESIRED_FACE_HEIGHT;
+    int MIN_EYES_DISTANCE;
+    size_t MIN_TEMP_FACES;
+    Size DIS_IMAGE_SIZE;
+
+};
 
 #endif // FACEDETECTION_H
