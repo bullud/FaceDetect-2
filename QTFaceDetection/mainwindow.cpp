@@ -113,13 +113,6 @@ void MainWindow::OnTimeout()
     // Capture one frame from the camera
     cv::Mat frame;
     capture_ >> frame;
-
-    if (dataContext_.GetRecordStatus())
-    {
-        assert(videoWriter_ != nullptr);
-        assert(dataContext_.GetMode() == RECORD);
-        *videoWriter_ << frame;
-    }
 	
 	/**
 	 * just show how to use FaceDetecction class:
@@ -148,11 +141,58 @@ void MainWindow::OnTimeout()
     }
     */
     // option-3: recognize faces
-    const struct face_descriptor *cur_face_info;
-    if(faceDetection_.RecognizeFace(frame, frame_index_))
+    if (dataContext_.GetMode() == DETECTION)
     {
-        cur_face_info = faceDetection_.GetCurFaceInfo();
-        // do process...
+        const struct face_descriptor *cur_face_info;
+        if(faceDetection_.RecognizeFace(frame, frame_index_))
+        {
+            cur_face_info = faceDetection_.GetCurFaceInfo();
+            // do process...
+        }
+    }
+    else if (dataContext_.GetMode() == TEMPLATE)
+    {
+        if(faceDetection_.CreateFaceTemplate(frame, frame_index_, bfirst_))
+        {
+            QMessageBox::critical(this,
+                                  "Critical",
+                                  "Face Template Create Complete!",
+                                  QMessageBox::Yes,
+                                  QMessageBox::Yes);
+            bfirst_ = true;
+
+            // Exit template creation mode
+            dataContext_.SetMode(DETECTION);
+            ui->groupBoxVideoRecord->hide();
+            ui->groupBoxFaceTempalte->show();
+
+            switch (dataContext_.GetMode())
+            {
+            case TEMPLATE:
+                ui->faceTemplate->trigger();
+                break;
+            case DETECTION:
+                ui->faceRecognition->trigger();
+                break;
+            case RECORD:
+                ui->videoRecord->trigger();
+                break;
+            default:
+                assert(0);
+            }
+        }
+        else
+        {
+            bfirst_ = false;
+        }
+    }
+    else if (dataContext_.GetMode() == RECORD)
+    {
+        if (dataContext_.GetRecordStatus())
+        {
+            assert(videoWriter_ != nullptr);
+            *videoWriter_ << frame;
+        }
     }
 
     // update frame number:
@@ -220,5 +260,4 @@ void MainWindow::on_pushButton_2_clicked()
         delete videoWriter_;
         videoWriter_ = nullptr;
     }
-
 }
