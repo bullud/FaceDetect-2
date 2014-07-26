@@ -17,9 +17,13 @@ public:
     bool GetRecordStatus() { return recordStatus_; }
     void SetRecordStatus(bool status) { recordStatus_ = status; }
 
+    bool GetTemplateStatus() { return templateStatus_; }
+    void SetTemplateStatus(bool status) { templateStatus_ = status; }
+
 private:
-    MODE mode_ = TEMPLATE;
+    MODE mode_ = DETECTION;
     bool recordStatus_ = false;
+    bool templateStatus_ = false;
 };
 
 #endif // DATACONTEXT_H

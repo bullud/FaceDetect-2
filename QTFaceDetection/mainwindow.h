@@ -1,4 +1,4 @@
-#ifndef MAINWINDOW_H
+﻿#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include "facedetection.h"
@@ -44,6 +44,7 @@ private slots:
     void on_menuFileExit_triggered();
     void on_pushButton_clicked();
     void on_pushButton_2_clicked();
+    void on_pushButtonStartStopTemplate_clicked();
 };
 
 #endif // MAINWINDOW_H

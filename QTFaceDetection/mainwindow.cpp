@@ -59,6 +59,16 @@ MainWindow::MainWindow(QWidget *parent) :
     {
         ui->pushButton_2->setText(QStringLiteral("开始录像"));
     }
+
+    if (dataContext_.GetTemplateStatus())
+    {
+        ui->pushButtonStartStopTemplate->setText(QStringLiteral("停止建模"));
+    }
+    else
+    {
+        ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
+    }
+
     frame_index_ = 0;
     cv::Size screen_size(capture_.get(CV_CAP_PROP_FRAME_WIDTH), capture_.get(CV_CAP_PROP_FRAME_HEIGHT));
     if(!faceDetection_.Initialize(screen_size, QString("./face_database")))
@@ -89,18 +99,21 @@ void MainWindow::selectMode(QAction *action)
         dataContext_.SetMode(TEMPLATE);
         ui->groupBoxVideoRecord->hide();
         ui->groupBoxFaceTempalte->hide();
+        ui->groupBoxFaceTemplateControl->show();
     }
     else if (action == ui->faceRecognition)
     {
         dataContext_.SetMode(DETECTION);
         ui->groupBoxVideoRecord->hide();
         ui->groupBoxFaceTempalte->show();
+        ui->groupBoxFaceTemplateControl->hide();
     }
     else if (action == ui->videoRecord)
     {
         dataContext_.SetMode(RECORD);
         ui->groupBoxVideoRecord->show();
         ui->groupBoxFaceTempalte->hide();
+        ui->groupBoxFaceTemplateControl->hide();
     }
     else
         assert(0);
@@ -152,38 +165,32 @@ void MainWindow::OnTimeout()
     }
     else if (dataContext_.GetMode() == TEMPLATE)
     {
-        if(faceDetection_.CreateFaceTemplate(frame, frame_index_, bfirst_))
+        if (dataContext_.GetTemplateStatus())
         {
-            QMessageBox::critical(this,
-                                  "Critical",
-                                  "Face Template Create Complete!",
-                                  QMessageBox::Yes,
-                                  QMessageBox::Yes);
-            bfirst_ = true;
-
-            // Exit template creation mode
-            dataContext_.SetMode(DETECTION);
-            ui->groupBoxVideoRecord->hide();
-            ui->groupBoxFaceTempalte->show();
-
-            switch (dataContext_.GetMode())
+            if(faceDetection_.CreateFaceTemplate(frame, frame_index_, bfirst_))
             {
-            case TEMPLATE:
-                ui->faceTemplate->trigger();
-                break;
-            case DETECTION:
-                ui->faceRecognition->trigger();
-                break;
-            case RECORD:
-                ui->videoRecord->trigger();
-                break;
-            default:
-                assert(0);
+                QMessageBox::critical(this,
+                                      "Critical",
+                                      "Face Template Create Complete!",
+                                      QMessageBox::Yes,
+                                      QMessageBox::Yes);
+                bfirst_ = true;
+
+                dataContext_.SetTemplateStatus(false);
+
+                if (dataContext_.GetTemplateStatus())
+                {
+                    ui->pushButtonStartStopTemplate->setText(QStringLiteral("停止建模"));
+                }
+                else
+                {
+                    ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
+                }
             }
-        }
-        else
-        {
-            bfirst_ = false;
+            else
+            {
+                bfirst_ = false;
+            }
         }
     }
     else if (dataContext_.GetMode() == RECORD)
@@ -259,5 +266,19 @@ void MainWindow::on_pushButton_2_clicked()
         assert(videoWriter_ != nullptr);
         delete videoWriter_;
         videoWriter_ = nullptr;
+    }
+}
+
+void MainWindow::on_pushButtonStartStopTemplate_clicked()
+{
+    dataContext_.SetTemplateStatus(!dataContext_.GetTemplateStatus());
+
+    if (dataContext_.GetTemplateStatus())
+    {
+        ui->pushButtonStartStopTemplate->setText(QStringLiteral("停止建模"));
+    }
+    else
+    {
+        ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
     }
 }
