@@ -16,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent) :
     actionGroup(new QActionGroup(this)),
     videoWriter_(nullptr),
     frame_index_(0),
-    bfirst_(false)
+    bfirst_(true)
 {
     ui->setupUi(this);
 

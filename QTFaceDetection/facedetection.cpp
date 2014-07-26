@@ -2,7 +2,7 @@
 
 // just for debug, to be removed later......
 #undef DEBUG_MSG
-#define DEBUG_MSG       0
+#define DEBUG_MSG       1
 #if(DEBUG_MSG == 1)
 #include <iostream>
 using std::cout;
@@ -157,12 +157,11 @@ bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
     // record folder:
     top_folder = face_database_folder;
     QDir t;
-    if(!t.exists() && !t.mkdir(top_folder))
+    if(!t.exists(top_folder) && !t.mkdir(top_folder))
     {
-        Deinitialize();
-        return false;
+       Deinitialize();
+       return false;
     }
-
     return true;
 }
 
@@ -216,7 +215,9 @@ bool FaceDetection::CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_st
 
     // there must be faces detected:
     if(!DetectFace(frame, frame_index))
+    {
         return false;
+    }
 
     // we try to create every 20 frame:
     if((frame_no % 20) == 0)
