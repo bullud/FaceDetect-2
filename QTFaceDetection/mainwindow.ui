@@ -250,7 +250,7 @@
      <string>设置</string>
     </property>
     <addaction name="action_2"/>
-    <addaction name="action_3"/>
+    <addaction name="actionSetParam"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -291,7 +291,7 @@
     </font>
    </property>
   </action>
-  <action name="action_3">
+  <action name="actionSetParam">
    <property name="text">
     <string>参数</string>
    </property>

@@ -25,7 +25,8 @@ datacontext.cpp \
     facedetection.cpp \
     source_lib/findEyeCenter.cpp \
     source_lib/findEyeCorner.cpp \
-    source_lib/helpers.cpp
+    source_lib/helpers.cpp \
+    dialogparam.cpp
 
 HEADERS  += mainwindow.h \
 datacontext.h \
@@ -34,7 +35,9 @@ datacontext.h \
     source_lib/constants.h \
     source_lib/findEyeCenter.h \
     source_lib/findEyeCorner.h \
-    source_lib/helpers.h
+    source_lib/helpers.h \
+    dialogparam.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    dialogParam.ui
 

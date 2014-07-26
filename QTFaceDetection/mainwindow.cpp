@@ -1,6 +1,7 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "opencvutil.h"
+#include "dialogparam.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <string>
@@ -73,11 +74,12 @@ MainWindow::MainWindow(QWidget *parent) :
     cv::Size screen_size(capture_.get(CV_CAP_PROP_FRAME_WIDTH), capture_.get(CV_CAP_PROP_FRAME_HEIGHT));
     if(!faceDetection_.Initialize(screen_size, QString("./face_database")))
     {
-        QMessageBox::critical(this,
-                              "Critical",
-                              "Failed to init face detection class!",
-                              QMessageBox::Yes,
-                              QMessageBox::Yes);
+        QMessageBox::critical(
+            this,
+            QStringLiteral("错误"),
+            QStringLiteral("加载人脸模板失败"),
+            QMessageBox::Yes,
+            QMessageBox::Yes);
         return;
     }
 
@@ -281,4 +283,10 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
     {
         ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
     }
+}
+
+void MainWindow::on_actionSetParam_triggered()
+{
+    DialogParam dialog(this, &faceDetection_);
+    dialog.exec();
 }
