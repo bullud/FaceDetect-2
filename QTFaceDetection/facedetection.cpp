@@ -375,11 +375,7 @@ void FaceDetection::_UpdateStatus(size_t mask)
     else if(mask & BIT_TEMP_SIMILAR_GATE)
     {
         // we have to remove all created templates as gate changed...
-        size_t face_index;
-        for(face_index = 0; face_index < MAX_FACES; ++face_index)
-        {
-            NormFaceInfo.clear();
-        }
+        NormFaceInfo.clear();
     }
     else
     {
