@@ -64,8 +64,20 @@ struct face_parameter{
     size_t _min_kp_count;           // min keypoints count needed for tracking
     size_t _min_temp_faces;         // min face template the database needed for one face
     double _similar_gate;           // for judging two faces are for same persion or not
+    double _temp_similar_gate;      // for create face template, remove too-similar faces
 };
-
+// parameter bit mask:
+#define BIT_MAX_FACES               (1 << 0)
+#define BIT_MIN_KP_COUNT            (1 << 1)
+#define BIT_MIN_TEMP_FACES          (1 << 2)
+#define BIT_SIMILAR_GATE            (1 << 3)
+#define BIT_TEMP_SIMILAR_GATE       (1 << 4)
+// default parameter values:
+#define DEF_MAX_FACES               (5)
+#define DEF_MIN_KP_COUNT            (16)
+#define DEF_MIN_TEMP_FACES          (10)
+#define DEF_SIMILAR_GATE            (0.4)
+#define DEF_TEMP_SIMILAR_GATE       (0.3)
 
 class FaceDetection
 {
@@ -102,7 +114,7 @@ public:
      * @return true: face templated created and saved, otherwise false.
      * @note face templates will saved in face_database_folder, the parameter of Initialize()
      */
-    bool CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_start = false);
+    bool CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_start = false, size_t* p_created = nullptr);
     /**
      * @brief RecognizeFace: recognize faces in frame
      * @param frame: in which to recognize faces
@@ -132,6 +144,7 @@ protected:
     void _DetectFace(); // detect face, call GetCurFaceInfo() for result...
     void _TrackFace(); // track face, call GetCurFaceInfo() for result...
     void _RefreshFaceInfo(); // refresh CurFaceInfo...
+    void _UpdateStatus(size_t mask); // when parameters updated, we have to do corresponding action...
 
 private:
     size_t frame_no;
@@ -172,12 +185,13 @@ protected:
 protected:
     // face normalization:
     bool _database_updated;
+    bool _bcreating_temp;
     bool _really_eyes(vector<Rect>& eye_rects, Rect& face_rect, vector<Point2f>& face_corner);
     bool _create_one_norm_face(size_t face_index,
                                Mat& gray_frame,
                                Mat& wholeFace);
-    bool _save_norm_faces(size_t face_index);
-    bool _valid_norm_face(size_t face_index, Mat& new_face);
+    bool _save_norm_faces();
+    bool _valid_norm_face(Mat& new_face);
 
 protected:
     // face recognize:
@@ -188,7 +202,7 @@ protected:
 
 private:
     struct face_descriptor *CurFaceInfo;
-    vector<Mat> *NormFaceInfo;
+    vector<Mat> NormFaceInfo;
     void _reset_face_info(); // reset CurFaceInfo
     bool _find_free_node(size_t& index);
     size_t _cur_face_count();
@@ -199,6 +213,7 @@ private:
     size_t MIN_KP_COUNT; // minimal keyponits count
     size_t MAX_FACES;
     double SIMILAR_GATE;
+    double TEMP_SIMILAR_GATE; // for creating face templates
     RNG RNG;
     double DESIRED_LEFT_EYE_X;
     double DESIRED_LEFT_EYE_Y;

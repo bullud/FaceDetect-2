@@ -13,10 +13,11 @@ using std::endl;
 #define SET_MAX(x, max)		do{if((x) > (max)) (x) = (max);}while(0)
 
 FaceDetection::FaceDetection()
-    : MAX_FACES(5)
-    , MIN_KP_COUNT(16)
-    , SIMILAR_GATE(0.4)
-    , MIN_TEMP_FACES(10)
+    : MAX_FACES(DEF_MAX_FACES)
+    , MIN_KP_COUNT(DEF_MIN_KP_COUNT)
+    , SIMILAR_GATE(DEF_SIMILAR_GATE)
+    , TEMP_SIMILAR_GATE(DEF_TEMP_SIMILAR_GATE)
+    , MIN_TEMP_FACES(DEF_MIN_TEMP_FACES)
     , RNG(12345)
     , DESIRED_LEFT_EYE_X(0.16)
     , DESIRED_LEFT_EYE_Y(0.14)
@@ -28,9 +29,9 @@ FaceDetection::FaceDetection()
     , DIS_IMAGE_SIZE(200, 200)
     , feature_detector(400, 0.01, 5.0, 3, true, 0.04)
     , CurFaceInfo(nullptr)
-    , NormFaceInfo(nullptr)
     , model(nullptr)
     , _database_updated(false)
+    , _bcreating_temp(false)
 {
 
 }
@@ -46,6 +47,7 @@ void FaceDetection::QueryParameters(struct face_parameter* param)
     param->_min_kp_count = MIN_KP_COUNT;
     param->_min_temp_faces = MIN_TEMP_FACES;
     param->_similar_gate = SIMILAR_GATE;
+    param->_temp_similar_gate = TEMP_SIMILAR_GATE;
 }
 
 void FaceDetection::ModifyParameters(struct face_parameter* param)
@@ -53,10 +55,29 @@ void FaceDetection::ModifyParameters(struct face_parameter* param)
     if(!param)
         return;
 
+    // check if parameter changed:
+    size_t mask = 0;
+    if(MAX_FACES != param->_max_faces)
+        mask |= BIT_MAX_FACES;
+    if(MIN_KP_COUNT != param->_min_kp_count)
+        mask |= BIT_MIN_KP_COUNT;
+    if(MIN_TEMP_FACES != param->_min_temp_faces)
+        mask |= BIT_MIN_TEMP_FACES;
+    if(SIMILAR_GATE != param->_similar_gate)
+        mask |= BIT_SIMILAR_GATE;
+    if(TEMP_SIMILAR_GATE != param->_temp_similar_gate)
+        mask |= BIT_TEMP_SIMILAR_GATE;
+
+    // update:
     MAX_FACES = param->_max_faces;
     MIN_KP_COUNT = param->_min_kp_count;
     MIN_TEMP_FACES = param->_min_temp_faces;
     SIMILAR_GATE = param->_similar_gate;
+    TEMP_SIMILAR_GATE = param->_temp_similar_gate;
+
+    // update related thing:
+    if(mask)
+        _UpdateStatus(mask);
 }
 
 bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
@@ -77,21 +98,8 @@ bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
     }
     _reset_face_info();
 
-    // malloc normalized face buffer:
-    if(NormFaceInfo)
-    {
-        delete [] NormFaceInfo;
-        NormFaceInfo = nullptr;
-    }
-    NormFaceInfo = new vector<Mat>[MAX_FACES];
-    if(!NormFaceInfo)
-    {
-        #if(DEBUG_MSG == 1)
-        cout << "Cannot malloc normalized face buffer.\n";
-        #endif
-        Deinitialize();
-        return false;
-    }
+    // normalized faces:
+    NormFaceInfo.clear();
 
     // face detector init:
     if(frontal_face_detector.empty())
@@ -172,11 +180,6 @@ void FaceDetection::Deinitialize()
         delete [] CurFaceInfo;
         CurFaceInfo = nullptr;
     }
-    if(NormFaceInfo)
-    {
-        delete [] NormFaceInfo;
-        NormFaceInfo = nullptr;
-    }
 }
 
 bool FaceDetection::DetectFace(Mat& frame, size_t frame_index)
@@ -204,18 +207,23 @@ bool FaceDetection::DetectFace(Mat& frame, size_t frame_index)
     return _cur_face_count() ? true : false;
 }
 
-bool FaceDetection::CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_start)
+bool FaceDetection::CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_start, size_t* p_created)
 {
+    // set flag:
+    _bcreating_temp = true;
+
     // we should have a new start:
     if(b_start)
     {
-        for(size_t face_index = 0; face_index < MAX_FACES; ++face_index)
-            NormFaceInfo[face_index].clear();
+        // remove previous faces:
+        NormFaceInfo.clear();
     }
 
     // there must be faces detected:
     if(!DetectFace(frame, frame_index))
     {
+        if(p_created)
+            *p_created = NormFaceInfo.size();
         return false;
     }
 
@@ -234,32 +242,39 @@ bool FaceDetection::CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_st
         Mat whole_face;
         if(_create_one_norm_face(face_index, norm_gray_frame, whole_face))
         {
-            if(_valid_norm_face(face_index, whole_face))
+            if(_valid_norm_face(whole_face))
             {
-                NormFaceInfo[face_index].push_back(whole_face);
+                NormFaceInfo.push_back(whole_face);
             }
         }
 
         // check if enough to put into database:
         #if(DEBUG_MSG == 1)
-        cout << "Current norm face size = " << NormFaceInfo[face_index].size() << endl;
+        cout << "Current norm face size = " << NormFaceInfo.size() << endl;
         #endif
-        if(NormFaceInfo[face_index].size() >= MIN_TEMP_FACES)
+        if(NormFaceInfo.size() >= MIN_TEMP_FACES)
         {
             // save it:
-            if(_save_norm_faces(face_index))
+            if(_save_norm_faces())
             {
-                NormFaceInfo[face_index].clear();
+                NormFaceInfo.clear();
                 _database_updated = true;   // make face recognizer re-init as database updated....
+                if(p_created)
+                    *p_created = NormFaceInfo.size();
                 return true;
             }
         }
     }
+    if(p_created)
+        *p_created = NormFaceInfo.size();
     return false;
 }
 
 bool FaceDetection::RecognizeFace(Mat& frame, size_t frame_index)
 {
+    // set flag:
+    _bcreating_temp = false;
+
     // if there is no face detected, do nothing:
     if(!DetectFace(frame, frame_index))
         return false;
@@ -314,6 +329,63 @@ bool FaceDetection::RecognizeFace(Mat& frame, size_t frame_index)
 }
 
 ///////////////////////////////// middle -level function ////////////////////////////////
+
+void FaceDetection::_UpdateStatus(size_t mask)
+{
+    // judge which parameter changed:
+    if(mask & BIT_MAX_FACES)
+    {
+        // we have to re-alloc buffers:
+        Deinitialize();
+        // malloc face descriptor buffer:
+        CurFaceInfo = new struct face_descriptor[MAX_FACES];
+        if(!CurFaceInfo)
+        {
+            #if(DEBUG_MSG == 1)
+            cout << "[_UpdateStatus]: Cannot malloc face descriptor buffer.\n";
+            #endif
+            return;
+        }
+        _reset_face_info();
+
+        // norm faces:
+        NormFaceInfo.clear();
+    }
+    else if(mask & BIT_MIN_KP_COUNT)
+    {
+        // nothing to do...
+    }
+    else if(mask & BIT_MIN_TEMP_FACES)
+    {
+        // nothing to do...
+    }
+    else if(mask & BIT_SIMILAR_GATE)
+    {
+        // we have to re-recognize faces, so...
+        size_t face_index;
+        for(face_index = 0; face_index < MAX_FACES; ++face_index)
+        {
+            if(!CurFaceInfo[face_index]._valid)
+                continue;
+            // indicate not recognized...
+            CurFaceInfo[face_index]._recognized = false;
+            CurFaceInfo[face_index]._label = -1;
+        }
+    }
+    else if(mask & BIT_TEMP_SIMILAR_GATE)
+    {
+        // we have to remove all created templates as gate changed...
+        size_t face_index;
+        for(face_index = 0; face_index < MAX_FACES; ++face_index)
+        {
+            NormFaceInfo.clear();
+        }
+    }
+    else
+    {
+        // can not come here....
+    }
+}
 
 void FaceDetection::_SetTargetFrame(Mat& frame, size_t frame_index)
 {
@@ -477,7 +549,10 @@ void FaceDetection::_TrackFace()
             else
             {
                 // check if need recognize:
-                color = CurFaceInfo[face_index]._recognized ? Scalar(0, 0, 255) : Scalar(0, 255, 0);
+                if(_bcreating_temp)
+                    color = Scalar(255, 0, 0);
+                else
+                    color = CurFaceInfo[face_index]._recognized ? Scalar(0, 0, 255) : Scalar(0, 255, 0);
 
                 //-- Draw lines between the corners (the mapped object in the scene - image_2 )
                 cv::line(target_frame, cur_corners[0], cur_corners[1], color, 2);
@@ -1112,22 +1187,22 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
     return true;
 }
 
-bool FaceDetection::_valid_norm_face(size_t face_index, Mat& new_face)
+bool FaceDetection::_valid_norm_face(Mat& new_face)
 {
     double similar;
-    for(size_t i=0; i<NormFaceInfo[face_index].size(); ++i)
+    for(size_t i=0; i<NormFaceInfo.size(); ++i)
     {
-        similar = _get_similarity(NormFaceInfo[face_index][i], new_face);
+        similar = _get_similarity(NormFaceInfo[i], new_face);
         #if(DEBUG_MSG == 1)
         cout << "similarity = " << similar << endl;
         #endif
-        if(similar < 0.3)
+        if(similar < TEMP_SIMILAR_GATE)
             return false;
     }
     return true;
 }
 
-bool FaceDetection::_save_norm_faces(size_t face_index)
+bool FaceDetection::_save_norm_faces()
 {
     QString sub_folder, file_name;
     #if(DEBUG_MSG == 1)
@@ -1135,7 +1210,7 @@ bool FaceDetection::_save_norm_faces(size_t face_index)
     #endif
     int lib_index = 1;
 
-    if(NormFaceInfo[face_index].empty())
+    if(NormFaceInfo.empty())
         return false;
 
     // create top folder:
@@ -1156,10 +1231,10 @@ bool FaceDetection::_save_norm_faces(size_t face_index)
         }
     }
 
-    for(size_t i=0; i<NormFaceInfo[face_index].size(); ++i)
+    for(size_t i=0; i<NormFaceInfo.size(); ++i)
     {
         file_name.sprintf("%s/%d.pgm", sub_folder.toStdString().c_str(), i+1);
-        cv::imwrite(file_name.toStdString(), NormFaceInfo[face_index][i]);
+        cv::imwrite(file_name.toStdString(), NormFaceInfo[i]);
     }
     return true;
 }
