@@ -158,11 +158,11 @@ void MainWindow::OnTimeout()
     // option-3: recognize faces
     if (dataContext_.GetMode() == DETECTION)
     {
-        const struct face_descriptor *cur_face_info;
         if(faceDetection_.RecognizeFace(frame, frame_index_))
         {
-            cur_face_info = faceDetection_.GetCurFaceInfo();
+            const struct face_descriptor *cur_face_info = faceDetection_.GetCurFaceInfo();
             // do process...
+            OpenCVUtil::AddFaceItem(ui->listWidget, cur_face_info->_image, cur_face_info->_label);
         }
     }
     else if (dataContext_.GetMode() == TEMPLATE)
