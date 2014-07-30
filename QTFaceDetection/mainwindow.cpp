@@ -161,8 +161,18 @@ void MainWindow::OnTimeout()
         if(faceDetection_.RecognizeFace(frame, frame_index_))
         {
             const struct face_descriptor *cur_face_info = faceDetection_.GetCurFaceInfo();
-            // do process...
-            OpenCVUtil::AddFaceItem(ui->listWidget, cur_face_info->_image, cur_face_info->_label);
+            face_parameter param;
+            faceDetection_.QueryParameters(&param);
+            for(size_t face_index=0; face_index<param._max_faces; ++face_index)
+            {
+                if(!cur_face_info[face_index]._valid)
+                    continue;
+                if(!cur_face_info[face_index]._recognized)
+                    continue;
+                imshow("test", cur_face_info[face_index]._image); // just test, and to be removed......
+                // do process...
+                OpenCVUtil::AddFaceItem(ui->listWidget, cur_face_info[face_index]._image, cur_face_info[face_index]._label);
+            }
         }
     }
     else if (dataContext_.GetMode() == TEMPLATE)
