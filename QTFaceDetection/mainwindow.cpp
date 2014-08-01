@@ -128,6 +128,8 @@ void MainWindow::OnTimeout()
     // Capture one frame from the camera
     cv::Mat frame;
     capture_ >> frame;
+    if(frame.empty())
+        return;
 	
 	/**
 	 * just show how to use FaceDetecction class:
@@ -169,7 +171,7 @@ void MainWindow::OnTimeout()
                     continue;
                 if(!cur_face_info[face_index]._recognized)
                     continue;
-                imshow("test", cur_face_info[face_index]._image); // just test, and to be removed......
+                //imshow("test", cur_face_info[face_index]._image); // just test, and to be removed......
                 // do process...
                 OpenCVUtil::AddFaceItem(ui->listWidget, cur_face_info[face_index]._image, cur_face_info[face_index]._label);
             }
