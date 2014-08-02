@@ -34,6 +34,7 @@ private:
     QTimer timer_;
     std::unique_ptr<QActionGroup> actionGroup;
     size_t frame_index_;
+    size_t createdTemplates;
     bool bfirst_;
 
     cv::VideoWriter *videoWriter_;

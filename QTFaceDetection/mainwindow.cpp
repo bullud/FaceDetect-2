@@ -70,6 +70,8 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
     }
 
+    ui->progressBarFaceTemplate->hide();
+
     frame_index_ = 0;
     cv::Size screen_size(capture_.get(CV_CAP_PROP_FRAME_WIDTH), capture_.get(CV_CAP_PROP_FRAME_HEIGHT));
     if(!faceDetection_.Initialize(screen_size, QString("./face_database")))
@@ -181,8 +183,12 @@ void MainWindow::OnTimeout()
     {
         if (dataContext_.GetTemplateStatus())
         {
-            if(faceDetection_.CreateFaceTemplate(frame, frame_index_, bfirst_))
+            if(faceDetection_.CreateFaceTemplate(frame, frame_index_, bfirst_, &createdTemplates))
             {
+                face_parameter param;
+                faceDetection_.QueryParameters(&param);
+                ui->progressBarFaceTemplate->setValue(createdTemplates * 100 / param._min_temp_faces);
+
                 QMessageBox::critical(this,
                                       "Critical",
                                       "Face Template Create Complete!",
@@ -199,11 +205,15 @@ void MainWindow::OnTimeout()
                 else
                 {
                     ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
+                    ui->progressBarFaceTemplate->hide();
                 }
             }
             else
             {
                 bfirst_ = false;
+                face_parameter param;
+                faceDetection_.QueryParameters(&param);
+                ui->progressBarFaceTemplate->setValue(createdTemplates * 100 / param._min_temp_faces);
             }
         }
     }
@@ -290,10 +300,13 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
     if (dataContext_.GetTemplateStatus())
     {
         ui->pushButtonStartStopTemplate->setText(QStringLiteral("停止建模"));
+        ui->progressBarFaceTemplate->setValue(0);
+        ui->progressBarFaceTemplate->show();
     }
     else
     {
         ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
+        ui->progressBarFaceTemplate->hide();
     }
 }
 
