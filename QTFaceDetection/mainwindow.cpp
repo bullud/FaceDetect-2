@@ -315,6 +315,7 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
 
     if (dataContext_.GetTemplateStatus())
     {
+        bfirst_ = true;
         ui->pushButtonStartStopTemplate->setText(QStringLiteral("停止建模"));
         ui->progressBarFaceTemplate->setValue(0);
         ui->progressBarFaceTemplate->show();
