@@ -14,17 +14,22 @@ QImage OpenCVUtil::CVImgToQTImg(const cv::Mat &opencvImg)
     return QImage((const uchar*)opencvImg.data, opencvImg.cols, opencvImg.rows, QImage::Format_RGB888);
 }
 
-QListWidgetItem *OpenCVUtil::CreateFaceItem(const cv::Mat &face)
+QListWidgetItem *OpenCVUtil::CreateFaceItem(const cv::Mat &face, int id)
 {
-    return new QListWidgetItem(QIcon(QPixmap::fromImage(CVImgToQTImg(face))), "");
+    QListWidgetItem *item = new QListWidgetItem(QIcon(QPixmap::fromImage(CVImgToQTImg(face))), "");
+    item->setData(Qt::UserRole, id);
+    return item;
 }
 
 void OpenCVUtil::AddFaceItem(QListWidget *listBox, const cv::Mat &face, int id)
 {
-    static vector<int> s_FaceIds;
-    if (s_FaceIds.end() == find(s_FaceIds.begin(), s_FaceIds.end(), id))
+    vector<int> faceIds;
+    for (int i = 0; i < listBox->count(); ++i)
+        faceIds.push_back(listBox->item(i)->data(Qt::UserRole).toInt());
+
+    if (faceIds.end() == find(faceIds.begin(), faceIds.end(), id))
     {
-        listBox->addItem(CreateFaceItem(face));
-        s_FaceIds.push_back(id);
+        listBox->addItem(CreateFaceItem(face, id));
+        faceIds.push_back(id);
     }
 }

@@ -47,6 +47,7 @@ private slots:
     void on_pushButton_2_clicked();
     void on_pushButtonStartStopTemplate_clicked();
     void on_actionSetParam_triggered();
+    void deleteItem();
 };
 
 #endif // MAINWINDOW_H

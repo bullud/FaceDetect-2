@@ -4,6 +4,7 @@
 #include "dialogparam.h"
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QShortcut>
 #include <string>
 #include <cassert>
 
@@ -85,6 +86,9 @@ MainWindow::MainWindow(QWidget *parent) :
             QMessageBox::Yes);
         return;
     }
+
+    QShortcut* shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidget);
+    connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItem()));
 
     adjustSize();
 
@@ -328,4 +332,9 @@ void MainWindow::on_actionSetParam_triggered()
 {
     DialogParam dialog(this, &faceDetection_);
     dialog.exec();
+}
+
+void MainWindow::deleteItem()
+{
+    delete ui->listWidget->currentItem();
 }

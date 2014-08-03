@@ -10,7 +10,7 @@ class OpenCVUtil
 {
 public:
     static QImage CVImgToQTImg(const cv::Mat &opencvImg);
-    static QListWidgetItem *CreateFaceItem(const cv::Mat &face);
+    static QListWidgetItem *CreateFaceItem(const cv::Mat &face, int id);
     static void AddFaceItem(QListWidget *listBox, const cv::Mat &face, int id);
 };
 
