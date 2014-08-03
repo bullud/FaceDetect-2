@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>814</width>
-    <height>727</height>
+    <width>806</width>
+    <height>725</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="font">
    <font>
@@ -19,229 +25,241 @@
    <string>人脸识别系统演示程序</string>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <property name="font">
     <font>
      <family>微软雅黑</family>
     </font>
    </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
+   <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
+     <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-      <widget class="QGroupBox" name="groupBoxFaceTempalte">
+       <widget class="QGroupBox" name="groupBoxFaceTempalte">
         <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+         <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
-        </sizepolicy>
+         </sizepolicy>
         </property>
         <property name="title">
-        <string>人脸模型</string>
+         <string>人脸模型</string>
         </property>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
+         <item>
           <widget class="QListWidget" name="listWidget">
-          <property name="sizePolicy">
+           <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
             </sizepolicy>
-          </property>
-          <property name="maximumSize">
+           </property>
+           <property name="maximumSize">
             <size>
-            <width>120</width>
-            <height>16777215</height>
+             <width>120</width>
+             <height>16777215</height>
             </size>
-          </property>
-          <property name="viewMode">
+           </property>
+           <property name="viewMode">
             <enum>QListView::IconMode</enum>
-          </property>
+           </property>
           </widget>
-        </item>
+         </item>
         </layout>
-      </widget>
+       </widget>
       </item>
       <item>
-      <widget class="QLabel" name="canvas">
+       <widget class="QLabel" name="canvas">
         <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
-        </sizepolicy>
+         </sizepolicy>
         </property>
         <property name="minimumSize">
-        <size>
+         <size>
           <width>640</width>
           <height>480</height>
-        </size>
+         </size>
         </property>
         <property name="text">
-        <string/>
+         <string/>
         </property>
         <property name="scaledContents">
-        <bool>false</bool>
+         <bool>false</bool>
         </property>
         <property name="alignment">
-        <set>Qt::AlignCenter</set>
+         <set>Qt::AlignCenter</set>
         </property>
-      </widget>
+       </widget>
       </item>
-    </layout>
+     </layout>
     </item>
     <item>
-    <widget class="QGroupBox" name="groupBoxVideoRecord">
+     <widget class="QGroupBox" name="groupBoxVideoRecord">
       <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
-      </sizepolicy>
+       </sizepolicy>
       </property>
       <property name="title">
-      <string>视频录制</string>
+       <string>视频录制</string>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_5">
-      <item>
+       <item>
         <layout class="QVBoxLayout" name="verticalLayout">
-        <item>
+         <item>
           <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <item>
+           <item>
             <widget class="QLabel" name="label">
-            <property name="sizePolicy">
+             <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
               </sizepolicy>
-            </property>
-            <property name="text">
+             </property>
+             <property name="text">
               <string>文件路径：</string>
-            </property>
+             </property>
             </widget>
-          </item>
-          <item>
+           </item>
+           <item>
             <widget class="QLineEdit" name="lineEditRecordPath"/>
-          </item>
-          <item>
+           </item>
+           <item>
             <widget class="QPushButton" name="pushButton">
-            <property name="text">
+             <property name="text">
               <string>文件...</string>
-            </property>
+             </property>
             </widget>
-          </item>
+           </item>
           </layout>
-        </item>
-        <item>
+         </item>
+         <item>
           <layout class="QHBoxLayout" name="horizontalLayout_3">
-          <item>
+           <item>
             <spacer name="horizontalSpacer">
-            <property name="orientation">
+             <property name="orientation">
               <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
+             </property>
+             <property name="sizeHint" stdset="0">
               <size>
-              <width>40</width>
-              <height>20</height>
+               <width>0</width>
+               <height>0</height>
               </size>
-            </property>
+             </property>
             </spacer>
-          </item>
-          <item>
+           </item>
+           <item>
             <widget class="QPushButton" name="pushButton_2">
-            <property name="text">
+             <property name="text">
               <string/>
-            </property>
+             </property>
             </widget>
-          </item>
-          <item>
+           </item>
+           <item>
             <spacer name="horizontalSpacer_2">
-            <property name="orientation">
+             <property name="orientation">
               <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
+             </property>
+             <property name="sizeHint" stdset="0">
               <size>
-              <width>40</width>
-              <height>20</height>
+               <width>0</width>
+               <height>0</height>
               </size>
-            </property>
+             </property>
             </spacer>
-          </item>
+           </item>
           </layout>
-        </item>
+         </item>
         </layout>
-      </item>
+       </item>
       </layout>
-    </widget>
+     </widget>
     </item>
     <item>
-    <widget class="QGroupBox" name="groupBoxFaceTemplateControl">
+     <widget class="QGroupBox" name="groupBoxFaceTemplateControl">
       <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
-      </sizepolicy>
+       </sizepolicy>
       </property>
       <property name="title">
-      <string>人脸建模</string>
+       <string>人脸建模</string>
       </property>
-      <layout class="QVBoxLayout" name="verticalLayout_3">
-      <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_7">
+       <item>
         <layout class="QVBoxLayout" name="verticalLayout_4">
-        <item>
+         <item>
           <widget class="QProgressBar" name="progressBarFaceTemplate">
-          <property name="value">
-            <number>24</number>
-          </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="value">
+            <number>0</number>
+           </property>
           </widget>
-        </item>
-        <item>
+         </item>
+         <item>
           <layout class="QHBoxLayout" name="horizontalLayout_6">
-          <item>
+           <item>
             <spacer name="horizontalSpacer_3">
-            <property name="orientation">
+             <property name="orientation">
               <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
+             </property>
+             <property name="sizeHint" stdset="0">
               <size>
-              <width>357</width>
-              <height>20</height>
+               <width>0</width>
+               <height>0</height>
               </size>
-            </property>
+             </property>
             </spacer>
-          </item>
-          <item>
+           </item>
+           <item>
             <widget class="QPushButton" name="pushButtonStartStopTemplate">
-            <property name="text">
+             <property name="text">
               <string/>
-            </property>
+             </property>
             </widget>
-          </item>
-          <item>
+           </item>
+           <item>
             <spacer name="horizontalSpacer_4">
-            <property name="orientation">
+             <property name="orientation">
               <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
+             </property>
+             <property name="sizeHint" stdset="0">
               <size>
-              <width>357</width>
-              <height>20</height>
+               <width>0</width>
+               <height>0</height>
               </size>
-            </property>
+             </property>
             </spacer>
-          </item>
+           </item>
           </layout>
-        </item>
+         </item>
         </layout>
-      </item>
+       </item>
       </layout>
-    </widget>
+     </widget>
     </item>
-  </layout>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>814</width>
+     <width>806</width>
      <height>23</height>
     </rect>
    </property>

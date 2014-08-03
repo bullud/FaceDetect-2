@@ -20,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
     bfirst_(true)
 {
     ui->setupUi(this);
+    layout()->setSizeConstraint(QLayout::SetFixedSize);
 
     actionGroup->addAction(ui->faceTemplate);
     actionGroup->addAction(ui->faceRecognition);
@@ -85,6 +86,7 @@ MainWindow::MainWindow(QWidget *parent) :
         return;
     }
 
+    adjustSize();
 
     connect(&timer_, SIGNAL(timeout()), this, SLOT(OnTimeout()));
     timer_.start(50);
@@ -101,6 +103,14 @@ void MainWindow::selectMode(QAction *action)
     if (action == ui->faceTemplate)
     {
         dataContext_.SetMode(TEMPLATE);
+        if (dataContext_.GetTemplateStatus())
+        {
+            ui->pushButtonStartStopTemplate->setText(QStringLiteral("停止建模"));
+        }
+        else
+        {
+            ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
+        }
         ui->groupBoxVideoRecord->hide();
         ui->groupBoxFaceTempalte->hide();
         ui->groupBoxFaceTemplateControl->show();
@@ -121,6 +131,8 @@ void MainWindow::selectMode(QAction *action)
     }
     else
         assert(0);
+
+    adjustSize();
 }
 
 void MainWindow::OnTimeout()
@@ -308,6 +320,8 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
         ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
         ui->progressBarFaceTemplate->hide();
     }
+
+    adjustSize();
 }
 
 void MainWindow::on_actionSetParam_triggered()
