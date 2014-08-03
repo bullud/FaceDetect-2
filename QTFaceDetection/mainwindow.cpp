@@ -104,17 +104,31 @@ MainWindow::~MainWindow()
 
 void MainWindow::selectMode(QAction *action)
 {
+    if (dataContext_.GetRecordStatus())
+    {
+        QMessageBox::critical(
+            this,
+            QStringLiteral("错误"),
+            QStringLiteral("请先退出录像模式。"),
+            QMessageBox::Yes,
+            QMessageBox::Yes);
+        return;
+    }
+
+    if (dataContext_.GetTemplateStatus())
+    {
+        QMessageBox::critical(
+            this,
+            QStringLiteral("错误"),
+            QStringLiteral("请先停止建模。"),
+            QMessageBox::Yes,
+            QMessageBox::Yes);
+        return;
+    }
+
     if (action == ui->faceTemplate)
     {
         dataContext_.SetMode(TEMPLATE);
-        if (dataContext_.GetTemplateStatus())
-        {
-            ui->pushButtonStartStopTemplate->setText(QStringLiteral("停止建模"));
-        }
-        else
-        {
-            ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
-        }
         ui->groupBoxVideoRecord->hide();
         ui->groupBoxFaceTempalte->hide();
         ui->groupBoxFaceTemplateControl->show();
