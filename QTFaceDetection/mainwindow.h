@@ -36,6 +36,7 @@ private:
     size_t frame_index_;
     size_t createdTemplates;
     bool bfirst_;
+    bool bredetect_;
 
     cv::VideoWriter *videoWriter_;
 

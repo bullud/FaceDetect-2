@@ -15,19 +15,20 @@
 #include <QtWidgets/QButtonGroup>
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QDialogButtonBox>
-#include <QtWidgets/QFormLayout>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QHeaderView>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
+#include <QtWidgets/QVBoxLayout>
+#include <QtWidgets/QWidget>
 
 QT_BEGIN_NAMESPACE
 
 class Ui_DialogParam
 {
 public:
-    QFormLayout *formLayout_2;
-    QFormLayout *formLayout;
+    QWidget *layoutWidget;
+    QVBoxLayout *verticalLayout;
     QGridLayout *gridLayout;
     QLabel *label;
     QLineEdit *lineEditMaxFaces;
@@ -44,7 +45,7 @@ public:
         if (DialogParam->objectName().isEmpty())
             DialogParam->setObjectName(QStringLiteral("DialogParam"));
         DialogParam->setWindowModality(Qt::WindowModal);
-        DialogParam->resize(278, 158);
+        DialogParam->resize(261, 157);
         QSizePolicy sizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
         sizePolicy.setHorizontalStretch(0);
         sizePolicy.setVerticalStretch(0);
@@ -54,64 +55,72 @@ public:
         font.setFamily(QString::fromUtf8("\345\276\256\350\275\257\351\233\205\351\273\221"));
         DialogParam->setFont(font);
         DialogParam->setModal(true);
-        formLayout_2 = new QFormLayout(DialogParam);
-        formLayout_2->setObjectName(QStringLiteral("formLayout_2"));
-        formLayout = new QFormLayout();
-        formLayout->setObjectName(QStringLiteral("formLayout"));
+        layoutWidget = new QWidget(DialogParam);
+        layoutWidget->setObjectName(QStringLiteral("layoutWidget"));
+        layoutWidget->setGeometry(QRect(9, 9, 242, 140));
+        verticalLayout = new QVBoxLayout(layoutWidget);
+        verticalLayout->setObjectName(QStringLiteral("verticalLayout"));
+        verticalLayout->setSizeConstraint(QLayout::SetFixedSize);
+        verticalLayout->setContentsMargins(0, 0, 0, 0);
         gridLayout = new QGridLayout();
         gridLayout->setObjectName(QStringLiteral("gridLayout"));
-        label = new QLabel(DialogParam);
+        label = new QLabel(layoutWidget);
         label->setObjectName(QStringLiteral("label"));
 
         gridLayout->addWidget(label, 0, 0, 1, 1);
 
-        lineEditMaxFaces = new QLineEdit(DialogParam);
+        lineEditMaxFaces = new QLineEdit(layoutWidget);
         lineEditMaxFaces->setObjectName(QStringLiteral("lineEditMaxFaces"));
+        sizePolicy.setHeightForWidth(lineEditMaxFaces->sizePolicy().hasHeightForWidth());
+        lineEditMaxFaces->setSizePolicy(sizePolicy);
 
-        gridLayout->addWidget(lineEditMaxFaces, 0, 1, 1, 2);
+        gridLayout->addWidget(lineEditMaxFaces, 0, 1, 1, 1);
 
-        label_2 = new QLabel(DialogParam);
+        label_2 = new QLabel(layoutWidget);
         label_2->setObjectName(QStringLiteral("label_2"));
 
         gridLayout->addWidget(label_2, 1, 0, 1, 1);
 
-        lineEditTpCount = new QLineEdit(DialogParam);
+        lineEditTpCount = new QLineEdit(layoutWidget);
         lineEditTpCount->setObjectName(QStringLiteral("lineEditTpCount"));
+        sizePolicy.setHeightForWidth(lineEditTpCount->sizePolicy().hasHeightForWidth());
+        lineEditTpCount->setSizePolicy(sizePolicy);
 
-        gridLayout->addWidget(lineEditTpCount, 1, 1, 1, 2);
+        gridLayout->addWidget(lineEditTpCount, 1, 1, 1, 1);
 
-        label_3 = new QLabel(DialogParam);
+        label_3 = new QLabel(layoutWidget);
         label_3->setObjectName(QStringLiteral("label_3"));
 
         gridLayout->addWidget(label_3, 2, 0, 1, 1);
 
-        lineEditMinTempFaces = new QLineEdit(DialogParam);
+        lineEditMinTempFaces = new QLineEdit(layoutWidget);
         lineEditMinTempFaces->setObjectName(QStringLiteral("lineEditMinTempFaces"));
+        sizePolicy.setHeightForWidth(lineEditMinTempFaces->sizePolicy().hasHeightForWidth());
+        lineEditMinTempFaces->setSizePolicy(sizePolicy);
 
-        gridLayout->addWidget(lineEditMinTempFaces, 2, 2, 1, 1);
+        gridLayout->addWidget(lineEditMinTempFaces, 2, 1, 1, 1);
 
-        label_4 = new QLabel(DialogParam);
+        label_4 = new QLabel(layoutWidget);
         label_4->setObjectName(QStringLiteral("label_4"));
 
         gridLayout->addWidget(label_4, 3, 0, 1, 1);
 
-        lineEditSimilarGate = new QLineEdit(DialogParam);
+        lineEditSimilarGate = new QLineEdit(layoutWidget);
         lineEditSimilarGate->setObjectName(QStringLiteral("lineEditSimilarGate"));
+        sizePolicy.setHeightForWidth(lineEditSimilarGate->sizePolicy().hasHeightForWidth());
+        lineEditSimilarGate->setSizePolicy(sizePolicy);
 
-        gridLayout->addWidget(lineEditSimilarGate, 3, 2, 1, 1);
+        gridLayout->addWidget(lineEditSimilarGate, 3, 1, 1, 1);
 
 
-        formLayout->setLayout(0, QFormLayout::LabelRole, gridLayout);
+        verticalLayout->addLayout(gridLayout);
 
-        buttonBox = new QDialogButtonBox(DialogParam);
+        buttonBox = new QDialogButtonBox(layoutWidget);
         buttonBox->setObjectName(QStringLiteral("buttonBox"));
         buttonBox->setOrientation(Qt::Horizontal);
         buttonBox->setStandardButtons(QDialogButtonBox::Cancel|QDialogButtonBox::Ok);
 
-        formLayout->setWidget(1, QFormLayout::LabelRole, buttonBox);
-
-
-        formLayout_2->setLayout(0, QFormLayout::LabelRole, formLayout);
+        verticalLayout->addWidget(buttonBox);
 
 
         retranslateUi(DialogParam);

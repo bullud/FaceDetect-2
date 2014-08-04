@@ -122,7 +122,7 @@ public:
      * @return true: face(s) have been recognized, otherwise false
      * @note when return true, call GetCurFaceInfo() to check which face(s) been recognized.
      */
-    bool RecognizeFace(Mat& frame, size_t frame_index);
+    bool RecognizeFace(Mat& frame, size_t frame_index, bool b_redetect = false);
     /**
      * @brief GetCurFaceInfo: query current information, check struct face_descriptor for details
      * @return pointer to struct face_descriptor array.

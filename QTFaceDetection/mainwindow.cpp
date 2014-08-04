@@ -18,7 +18,8 @@ MainWindow::MainWindow(QWidget *parent) :
     actionGroup(new QActionGroup(this)),
     videoWriter_(nullptr),
     frame_index_(0),
-    bfirst_(true)
+    bfirst_(true),
+    bredetect_(false)
 {
     ui->setupUi(this);
     layout()->setSizeConstraint(QLayout::SetFixedSize);
@@ -192,7 +193,9 @@ void MainWindow::OnTimeout()
     // option-3: recognize faces
     if (dataContext_.GetMode() == DETECTION)
     {
-        if(faceDetection_.RecognizeFace(frame, frame_index_))
+        // when need redetect faces:
+        // bredetect_ = true;
+        if(faceDetection_.RecognizeFace(frame, frame_index_, bredetect_))
         {
             const struct face_descriptor *cur_face_info = faceDetection_.GetCurFaceInfo();
             face_parameter param;
@@ -204,7 +207,7 @@ void MainWindow::OnTimeout()
                 if(!cur_face_info[face_index]._recognized)
                     continue;
                 //imshow("test", cur_face_info[face_index]._image); // just test, and to be removed......
-                // do process...
+                //do process...
                 OpenCVUtil::AddFaceItem(ui->listWidget, cur_face_info[face_index]._image, cur_face_info[face_index]._label);
             }
         }

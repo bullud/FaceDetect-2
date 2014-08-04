@@ -207,7 +207,7 @@ bool FaceDetection::DetectFace(Mat& frame, size_t frame_index)
     return _cur_face_count() ? true : false;
 }
 
-bool FaceDetection::CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_start, size_t* p_created)
+bool FaceDetection::CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_start/* = false*/, size_t* p_created/* = nullptr*/)
 {
     // set flag:
     _bcreating_temp = true;
@@ -270,10 +270,17 @@ bool FaceDetection::CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_st
     return false;
 }
 
-bool FaceDetection::RecognizeFace(Mat& frame, size_t frame_index)
+bool FaceDetection::RecognizeFace(Mat& frame, size_t frame_index, bool b_redetect/* = false*/)
 {
     // set flag:
     _bcreating_temp = false;
+
+    // re-detect???
+    if(b_redetect)
+    {
+        // invalid all current info:
+        _reset_face_info();
+    }
 
     // if there is no face detected, do nothing:
     if(!DetectFace(frame, frame_index))
@@ -546,15 +553,25 @@ void FaceDetection::_TrackFace()
             {
                 // check if need recognize:
                 if(_bcreating_temp)
+                {
                     color = Scalar(255, 0, 0);
+                    if(frame_no % 2 == 0)
+                    {
+                        cv::line(target_frame, cur_corners[0], cur_corners[1], color, 2);
+                        cv::line(target_frame, cur_corners[1], cur_corners[2], color, 2);
+                        cv::line(target_frame, cur_corners[2], cur_corners[3], color, 2);
+                        cv::line(target_frame, cur_corners[3], cur_corners[0], color, 2);
+                    }
+                }
                 else
+                {
                     color = CurFaceInfo[face_index]._recognized ? Scalar(0, 0, 255) : Scalar(0, 255, 0);
-
-                //-- Draw lines between the corners (the mapped object in the scene - image_2 )
-                cv::line(target_frame, cur_corners[0], cur_corners[1], color, 2);
-                cv::line(target_frame, cur_corners[1], cur_corners[2], color, 2);
-                cv::line(target_frame, cur_corners[2], cur_corners[3], color, 2);
-                cv::line(target_frame, cur_corners[3], cur_corners[0], color, 2);
+                    //-- Draw lines between the corners (the mapped object in the scene - image_2 )
+                    cv::line(target_frame, cur_corners[0], cur_corners[1], color, 2);
+                    cv::line(target_frame, cur_corners[1], cur_corners[2], color, 2);
+                    cv::line(target_frame, cur_corners[2], cur_corners[3], color, 2);
+                    cv::line(target_frame, cur_corners[3], cur_corners[0], color, 2);
+                }
 
                 // update previous cornners:
                 CurFaceInfo[face_index]._old_corners[0] = cur_corners[0];
@@ -705,6 +722,7 @@ void FaceDetection::_reset_face_info()
         CurFaceInfo[i]._cur_points.clear();
         CurFaceInfo[i]._old_corners.clear();
         CurFaceInfo[i]._recognized = false;
+        CurFaceInfo[i]._image = Mat();
     }
 }
 

@@ -22,6 +22,7 @@
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenu>
 #include <QtWidgets/QMenuBar>
+#include <QtWidgets/QProgressBar>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
 #include <QtWidgets/QVBoxLayout>
@@ -40,13 +41,12 @@ public:
     QAction *faceRecognition;
     QAction *videoRecord;
     QWidget *centralWidget;
-    QVBoxLayout *verticalLayout_3;
     QVBoxLayout *verticalLayout_2;
     QHBoxLayout *horizontalLayout;
+    QLabel *canvas;
     QGroupBox *groupBoxFaceTempalte;
     QHBoxLayout *horizontalLayout_4;
     QListWidget *listWidget;
-    QLabel *canvas;
     QGroupBox *groupBoxVideoRecord;
     QHBoxLayout *horizontalLayout_5;
     QVBoxLayout *verticalLayout;
@@ -59,6 +59,9 @@ public:
     QPushButton *pushButton_2;
     QSpacerItem *horizontalSpacer_2;
     QGroupBox *groupBoxFaceTemplateControl;
+    QHBoxLayout *horizontalLayout_7;
+    QVBoxLayout *verticalLayout_4;
+    QProgressBar *progressBarFaceTemplate;
     QHBoxLayout *horizontalLayout_6;
     QSpacerItem *horizontalSpacer_3;
     QPushButton *pushButtonStartStopTemplate;
@@ -73,7 +76,12 @@ public:
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QStringLiteral("MainWindow"));
-        MainWindow->resize(808, 693);
+        MainWindow->resize(806, 725);
+        QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        sizePolicy.setHorizontalStretch(0);
+        sizePolicy.setVerticalStretch(0);
+        sizePolicy.setHeightForWidth(MainWindow->sizePolicy().hasHeightForWidth());
+        MainWindow->setSizePolicy(sizePolicy);
         QFont font;
         font.setFamily(QString::fromUtf8("\345\276\256\350\275\257\351\233\205\351\273\221"));
         MainWindow->setFont(font);
@@ -103,33 +111,47 @@ public:
         videoRecord->setFont(font);
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
+        QSizePolicy sizePolicy1(QSizePolicy::Preferred, QSizePolicy::Preferred);
+        sizePolicy1.setHorizontalStretch(0);
+        sizePolicy1.setVerticalStretch(0);
+        sizePolicy1.setHeightForWidth(centralWidget->sizePolicy().hasHeightForWidth());
+        centralWidget->setSizePolicy(sizePolicy1);
         centralWidget->setFont(font);
-        verticalLayout_3 = new QVBoxLayout(centralWidget);
-        verticalLayout_3->setSpacing(6);
-        verticalLayout_3->setContentsMargins(11, 11, 11, 11);
-        verticalLayout_3->setObjectName(QStringLiteral("verticalLayout_3"));
-        verticalLayout_2 = new QVBoxLayout();
+        verticalLayout_2 = new QVBoxLayout(centralWidget);
         verticalLayout_2->setSpacing(6);
+        verticalLayout_2->setContentsMargins(11, 11, 11, 11);
         verticalLayout_2->setObjectName(QStringLiteral("verticalLayout_2"));
         horizontalLayout = new QHBoxLayout();
         horizontalLayout->setSpacing(6);
         horizontalLayout->setObjectName(QStringLiteral("horizontalLayout"));
+        canvas = new QLabel(centralWidget);
+        canvas->setObjectName(QStringLiteral("canvas"));
+        sizePolicy.setHeightForWidth(canvas->sizePolicy().hasHeightForWidth());
+        canvas->setSizePolicy(sizePolicy);
+        canvas->setMinimumSize(QSize(640, 480));
+        canvas->setScaledContents(false);
+        canvas->setAlignment(Qt::AlignCenter);
+
+        horizontalLayout->addWidget(canvas);
+
         groupBoxFaceTempalte = new QGroupBox(centralWidget);
         groupBoxFaceTempalte->setObjectName(QStringLiteral("groupBoxFaceTempalte"));
-        QSizePolicy sizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-        sizePolicy.setHorizontalStretch(0);
-        sizePolicy.setVerticalStretch(0);
-        sizePolicy.setHeightForWidth(groupBoxFaceTempalte->sizePolicy().hasHeightForWidth());
-        groupBoxFaceTempalte->setSizePolicy(sizePolicy);
+        QSizePolicy sizePolicy2(QSizePolicy::Fixed, QSizePolicy::Expanding);
+        sizePolicy2.setHorizontalStretch(0);
+        sizePolicy2.setVerticalStretch(0);
+        sizePolicy2.setHeightForWidth(groupBoxFaceTempalte->sizePolicy().hasHeightForWidth());
+        groupBoxFaceTempalte->setSizePolicy(sizePolicy2);
         horizontalLayout_4 = new QHBoxLayout(groupBoxFaceTempalte);
         horizontalLayout_4->setSpacing(6);
         horizontalLayout_4->setContentsMargins(11, 11, 11, 11);
         horizontalLayout_4->setObjectName(QStringLiteral("horizontalLayout_4"));
         listWidget = new QListWidget(groupBoxFaceTempalte);
         listWidget->setObjectName(QStringLiteral("listWidget"));
-        sizePolicy.setHeightForWidth(listWidget->sizePolicy().hasHeightForWidth());
-        listWidget->setSizePolicy(sizePolicy);
+        sizePolicy2.setHeightForWidth(listWidget->sizePolicy().hasHeightForWidth());
+        listWidget->setSizePolicy(sizePolicy2);
         listWidget->setMaximumSize(QSize(120, 16777215));
+        listWidget->setIconSize(QSize(100, 100));
+        listWidget->setResizeMode(QListView::Adjust);
         listWidget->setViewMode(QListView::IconMode);
 
         horizontalLayout_4->addWidget(listWidget);
@@ -137,29 +159,16 @@ public:
 
         horizontalLayout->addWidget(groupBoxFaceTempalte);
 
-        canvas = new QLabel(centralWidget);
-        canvas->setObjectName(QStringLiteral("canvas"));
-        QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        sizePolicy1.setHorizontalStretch(0);
-        sizePolicy1.setVerticalStretch(0);
-        sizePolicy1.setHeightForWidth(canvas->sizePolicy().hasHeightForWidth());
-        canvas->setSizePolicy(sizePolicy1);
-        canvas->setMinimumSize(QSize(640, 480));
-        canvas->setScaledContents(false);
-        canvas->setAlignment(Qt::AlignCenter);
-
-        horizontalLayout->addWidget(canvas);
-
 
         verticalLayout_2->addLayout(horizontalLayout);
 
         groupBoxVideoRecord = new QGroupBox(centralWidget);
         groupBoxVideoRecord->setObjectName(QStringLiteral("groupBoxVideoRecord"));
-        QSizePolicy sizePolicy2(QSizePolicy::Preferred, QSizePolicy::Fixed);
-        sizePolicy2.setHorizontalStretch(0);
-        sizePolicy2.setVerticalStretch(0);
-        sizePolicy2.setHeightForWidth(groupBoxVideoRecord->sizePolicy().hasHeightForWidth());
-        groupBoxVideoRecord->setSizePolicy(sizePolicy2);
+        QSizePolicy sizePolicy3(QSizePolicy::Preferred, QSizePolicy::Fixed);
+        sizePolicy3.setHorizontalStretch(0);
+        sizePolicy3.setVerticalStretch(0);
+        sizePolicy3.setHeightForWidth(groupBoxVideoRecord->sizePolicy().hasHeightForWidth());
+        groupBoxVideoRecord->setSizePolicy(sizePolicy3);
         horizontalLayout_5 = new QHBoxLayout(groupBoxVideoRecord);
         horizontalLayout_5->setSpacing(6);
         horizontalLayout_5->setContentsMargins(11, 11, 11, 11);
@@ -172,8 +181,8 @@ public:
         horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
         label = new QLabel(groupBoxVideoRecord);
         label->setObjectName(QStringLiteral("label"));
-        sizePolicy2.setHeightForWidth(label->sizePolicy().hasHeightForWidth());
-        label->setSizePolicy(sizePolicy2);
+        sizePolicy3.setHeightForWidth(label->sizePolicy().hasHeightForWidth());
+        label->setSizePolicy(sizePolicy3);
 
         horizontalLayout_2->addWidget(label);
 
@@ -193,7 +202,7 @@ public:
         horizontalLayout_3 = new QHBoxLayout();
         horizontalLayout_3->setSpacing(6);
         horizontalLayout_3->setObjectName(QStringLiteral("horizontalLayout_3"));
-        horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         horizontalLayout_3->addItem(horizontalSpacer);
 
@@ -202,7 +211,7 @@ public:
 
         horizontalLayout_3->addWidget(pushButton_2);
 
-        horizontalSpacer_2 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalSpacer_2 = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         horizontalLayout_3->addItem(horizontalSpacer_2);
 
@@ -217,13 +226,27 @@ public:
 
         groupBoxFaceTemplateControl = new QGroupBox(centralWidget);
         groupBoxFaceTemplateControl->setObjectName(QStringLiteral("groupBoxFaceTemplateControl"));
-        sizePolicy2.setHeightForWidth(groupBoxFaceTemplateControl->sizePolicy().hasHeightForWidth());
-        groupBoxFaceTemplateControl->setSizePolicy(sizePolicy2);
-        horizontalLayout_6 = new QHBoxLayout(groupBoxFaceTemplateControl);
+        sizePolicy3.setHeightForWidth(groupBoxFaceTemplateControl->sizePolicy().hasHeightForWidth());
+        groupBoxFaceTemplateControl->setSizePolicy(sizePolicy3);
+        horizontalLayout_7 = new QHBoxLayout(groupBoxFaceTemplateControl);
+        horizontalLayout_7->setSpacing(6);
+        horizontalLayout_7->setContentsMargins(11, 11, 11, 11);
+        horizontalLayout_7->setObjectName(QStringLiteral("horizontalLayout_7"));
+        verticalLayout_4 = new QVBoxLayout();
+        verticalLayout_4->setSpacing(6);
+        verticalLayout_4->setObjectName(QStringLiteral("verticalLayout_4"));
+        progressBarFaceTemplate = new QProgressBar(groupBoxFaceTemplateControl);
+        progressBarFaceTemplate->setObjectName(QStringLiteral("progressBarFaceTemplate"));
+        sizePolicy3.setHeightForWidth(progressBarFaceTemplate->sizePolicy().hasHeightForWidth());
+        progressBarFaceTemplate->setSizePolicy(sizePolicy3);
+        progressBarFaceTemplate->setValue(0);
+
+        verticalLayout_4->addWidget(progressBarFaceTemplate);
+
+        horizontalLayout_6 = new QHBoxLayout();
         horizontalLayout_6->setSpacing(6);
-        horizontalLayout_6->setContentsMargins(11, 11, 11, 11);
         horizontalLayout_6->setObjectName(QStringLiteral("horizontalLayout_6"));
-        horizontalSpacer_3 = new QSpacerItem(357, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalSpacer_3 = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         horizontalLayout_6->addItem(horizontalSpacer_3);
 
@@ -232,20 +255,23 @@ public:
 
         horizontalLayout_6->addWidget(pushButtonStartStopTemplate);
 
-        horizontalSpacer_4 = new QSpacerItem(357, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalSpacer_4 = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         horizontalLayout_6->addItem(horizontalSpacer_4);
 
 
+        verticalLayout_4->addLayout(horizontalLayout_6);
+
+
+        horizontalLayout_7->addLayout(verticalLayout_4);
+
+
         verticalLayout_2->addWidget(groupBoxFaceTemplateControl);
-
-
-        verticalLayout_3->addLayout(verticalLayout_2);
 
         MainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(MainWindow);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 808, 23));
+        menuBar->setGeometry(QRect(0, 0, 806, 23));
         menuBar->setFont(font);
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
@@ -284,8 +310,8 @@ public:
         faceTemplate->setText(QApplication::translate("MainWindow", "\344\272\272\350\204\270\345\273\272\346\250\241", 0));
         faceRecognition->setText(QApplication::translate("MainWindow", "\344\272\272\350\204\270\350\257\206\345\210\253", 0));
         videoRecord->setText(QApplication::translate("MainWindow", "\350\247\206\351\242\221\345\275\225\345\210\266", 0));
-        groupBoxFaceTempalte->setTitle(QApplication::translate("MainWindow", "\344\272\272\350\204\270\346\250\241\345\236\213", 0));
         canvas->setText(QString());
+        groupBoxFaceTempalte->setTitle(QApplication::translate("MainWindow", "\344\272\272\350\204\270\346\250\241\345\236\213", 0));
         groupBoxVideoRecord->setTitle(QApplication::translate("MainWindow", "\350\247\206\351\242\221\345\275\225\345\210\266", 0));
         label->setText(QApplication::translate("MainWindow", "\346\226\207\344\273\266\350\267\257\345\276\204\357\274\232", 0));
         pushButton->setText(QApplication::translate("MainWindow", "\346\226\207\344\273\266...", 0));
