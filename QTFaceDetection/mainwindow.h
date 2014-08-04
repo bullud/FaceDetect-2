@@ -36,6 +36,11 @@ private:
     size_t frame_index_;
     size_t createdTemplates;
     bool bfirst_;
+<<<<<<< HEAD
+=======
+    bool bredetect_;
+
+>>>>>>> 204f113fd2031c72000f92c660fceed127a9c694
     cv::VideoWriter *videoWriter_;
 
 private:
