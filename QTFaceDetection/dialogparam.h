@@ -16,12 +16,12 @@ public:
     DialogParam(QWidget *parent, FaceDetection *faceDetection);
     ~DialogParam();
 
+private slots:
+    void accept();
+
 private:
     Ui::DialogParam *ui;
     FaceDetection *faceDetection_;
-
-public slots:
-    void accept();
 };
 
 #endif // DIALOGPARAM_H

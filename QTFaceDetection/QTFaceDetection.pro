@@ -26,7 +26,8 @@ datacontext.cpp \
     source_lib/findEyeCenter.cpp \
     source_lib/findEyeCorner.cpp \
     source_lib/helpers.cpp \
-    dialogparam.cpp
+    dialogparam.cpp \
+    dialogvideosource.cpp
 
 HEADERS  += mainwindow.h \
 datacontext.h \
@@ -36,8 +37,12 @@ datacontext.h \
     source_lib/findEyeCenter.h \
     source_lib/findEyeCorner.h \
     source_lib/helpers.h \
-    dialogparam.h
+    dialogparam.h \
+    dialogvideosource.h
 
 FORMS    += mainwindow.ui \
-    dialogParam.ui
+    dialogParam.ui \
+    dialogvideosource.ui
+
+RESOURCES +=
 

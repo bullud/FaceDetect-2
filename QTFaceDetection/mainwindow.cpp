@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "opencvutil.h"
 #include "dialogparam.h"
+#include "dialogvideosource.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QShortcut>
@@ -14,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     timer_(this),
-    capture_(0),
+    capture_(new cv::VideoCapture(0)),
     actionGroup(new QActionGroup(this)),
     videoWriter_(nullptr),
     frame_index_(0),
@@ -27,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
     actionGroup->addAction(ui->faceRecognition);
     actionGroup->addAction(ui->videoRecord);
 
-    if (!capture_.isOpened())
+    if (!capture_->isOpened())
     {
         QMessageBox::critical(
             this,
@@ -75,7 +76,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->progressBarFaceTemplate->hide();
 
     frame_index_ = 0;
-    cv::Size screen_size(capture_.get(CV_CAP_PROP_FRAME_WIDTH), capture_.get(CV_CAP_PROP_FRAME_HEIGHT));
+    cv::Size screen_size(capture_->get(CV_CAP_PROP_FRAME_WIDTH), capture_->get(CV_CAP_PROP_FRAME_HEIGHT));
     if(!faceDetection_.Initialize(screen_size, QString("./face_database")))
     {
         QMessageBox::critical(
@@ -128,10 +129,12 @@ void MainWindow::selectMode(QAction *action)
 
     if (action == ui->faceTemplate)
     {
+        UseCamera();
         dataContext_.SetMode(TEMPLATE);
         ui->groupBoxVideoRecord->hide();
         ui->groupBoxFaceTempalte->hide();
         ui->groupBoxFaceTemplateControl->show();
+        ui->actionVideoSource->setEnabled(false);
     }
     else if (action == ui->faceRecognition)
     {
@@ -139,13 +142,16 @@ void MainWindow::selectMode(QAction *action)
         ui->groupBoxVideoRecord->hide();
         ui->groupBoxFaceTempalte->show();
         ui->groupBoxFaceTemplateControl->hide();
+        ui->actionVideoSource->setEnabled(true);
     }
     else if (action == ui->videoRecord)
     {
+        UseCamera();
         dataContext_.SetMode(RECORD);
         ui->groupBoxVideoRecord->show();
         ui->groupBoxFaceTempalte->hide();
         ui->groupBoxFaceTemplateControl->hide();
+        ui->actionVideoSource->setEnabled(false);
     }
     else
         assert(0);
@@ -155,41 +161,14 @@ void MainWindow::selectMode(QAction *action)
 
 void MainWindow::OnTimeout()
 {
-    if (!capture_.isOpened()) return;
+    if (!capture_->isOpened()) return;
 
     // Capture one frame from the camera
     cv::Mat frame;
-    capture_ >> frame;
+    *capture_ >> frame;
     if(frame.empty())
         return;
-	
-	/**
-	 * just show how to use FaceDetecction class:
-	 * option-1: just for test
-	 * option-2: 人脸建模模式
-	 * option-3: 人脸识别模式
-	 */
-	 // option-1: just detect/track faces
-    /*
-    faceDetection_.DetectFace(frame, frame_index_);
-    */
-    // option-2: create face templates automatically
-    /*
-    if(faceDetection_.CreateFaceTemplate(frame, frame_index_, bfirst_))
-    {
-        QMessageBox::critical(this,
-                              "Critical",
-                              "Face Template Create Complete!",
-                              QMessageBox::Yes,
-                              QMessageBox::Yes);
-        bfirst_ = true;
-    }
-    else
-    {
-        bfirst_ = false;
-    }
-    */
-    // option-3: recognize faces
+
     if (dataContext_.GetMode() == DETECTION)
     {
         if(faceDetection_.RecognizeFace(frame, frame_index_))
@@ -220,8 +199,8 @@ void MainWindow::OnTimeout()
                 ui->progressBarFaceTemplate->setValue(createdTemplates * 100 / param._min_temp_faces);
 
                 QMessageBox::critical(this,
-                                      "Critical",
-                                      "Face Template Create Complete!",
+                                      QStringLiteral("错误"),
+                                      QStringLiteral("人脸模型创建成功!"),
                                       QMessageBox::Yes,
                                       QMessageBox::Yes);
                 bfirst_ = true;
@@ -292,10 +271,10 @@ void MainWindow::on_pushButton_2_clicked()
         videoWriter_ = new cv::VideoWriter();
         const string path = ui->lineEditRecordPath->text().toUtf8().constData();   // Form the new name with container
 
-        cv::Size S = cv::Size(capture_.get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
-                      capture_.get(CV_CAP_PROP_FRAME_HEIGHT));
+        cv::Size S = cv::Size(capture_->get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
+                      capture_->get(CV_CAP_PROP_FRAME_HEIGHT));
 
-        videoWriter_->open(path, -1/*capture_.get(CV_CAP_PROP_FOURCC)*/, capture_.get(CV_CAP_PROP_FPS), S, true);
+        videoWriter_->open(path, -1/*capture_->get(CV_CAP_PROP_FOURCC)*/, capture_->get(CV_CAP_PROP_FPS), S, true);
 
         if (!videoWriter_->isOpened())
         {
@@ -352,4 +331,20 @@ void MainWindow::on_actionSetParam_triggered()
 void MainWindow::deleteItem()
 {
     delete ui->listWidget->currentItem();
+}
+
+void MainWindow::on_actionVideoSource_triggered()
+{
+    DialogVideoSource dialog(this, capture_, dataContext_);
+    dialog.exec();
+}
+
+void MainWindow::UseCamera()
+{
+    if (dataContext_.GetSource() == CAMERA) return;
+
+    std::unique_ptr<cv::VideoCapture> newSource(
+        new cv::VideoCapture(0));
+    capture_.swap(newSource);
+    dataContext_.SetSource(CAMERA);
 }

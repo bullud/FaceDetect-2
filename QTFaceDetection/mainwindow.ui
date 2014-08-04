@@ -287,7 +287,7 @@
     <property name="title">
      <string>设置</string>
     </property>
-    <addaction name="action_2"/>
+    <addaction name="actionVideoSource"/>
     <addaction name="actionSetParam"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -319,7 +319,7 @@
     </font>
    </property>
   </action>
-  <action name="action_2">
+  <action name="actionVideoSource">
    <property name="text">
     <string>视频源</string>
    </property>

@@ -30,14 +30,16 @@ private:
 private:
     DataContext dataContext_;
     FaceDetection faceDetection_;
-    cv::VideoCapture capture_;
     QTimer timer_;
+    std::unique_ptr<cv::VideoCapture> capture_;
     std::unique_ptr<QActionGroup> actionGroup;
     size_t frame_index_;
     size_t createdTemplates;
     bool bfirst_;
-
     cv::VideoWriter *videoWriter_;
+
+private:
+    void UseCamera();
 
 private slots:
     void OnTimeout();
@@ -48,6 +50,7 @@ private slots:
     void on_pushButtonStartStopTemplate_clicked();
     void on_actionSetParam_triggered();
     void deleteItem();
+    void on_actionVideoSource_triggered();
 };
 
 #endif // MAINWINDOW_H
