@@ -193,8 +193,6 @@ void MainWindow::OnTimeout()
     // option-3: recognize faces
     if (dataContext_.GetMode() == DETECTION)
     {
-        // when need redetect faces:
-        // bredetect_ = true;
         if(faceDetection_.RecognizeFace(frame, frame_index_, bredetect_))
         {
             const struct face_descriptor *cur_face_info = faceDetection_.GetCurFaceInfo();
@@ -211,6 +209,8 @@ void MainWindow::OnTimeout()
                 OpenCVUtil::AddFaceItem(ui->listWidget, cur_face_info[face_index]._image, cur_face_info[face_index]._label);
             }
         }
+        // we no need re-detect in default...
+        bredetect_ = false;
     }
     else if (dataContext_.GetMode() == TEMPLATE)
     {
@@ -355,4 +355,5 @@ void MainWindow::on_actionSetParam_triggered()
 void MainWindow::deleteItem()
 {
     delete ui->listWidget->currentItem();
+    bredetect_ = true;
 }
