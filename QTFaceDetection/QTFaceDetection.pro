@@ -13,14 +13,29 @@ TEMPLATE = app
 
 INCLUDEPATH+=$(OPENCV_DIR)\include
 
-LIBS+=$(OPENCV_DIR)\x86\vc12\lib\*.lib
-#LIBS+=$(OPENCV_DIR)\x86\vc12\lib\opencv_core249d.lib \
-#$(OPENCV_DIR)\x86\vc12\lib\opencv_highgui249d.lib \
-#$(OPENCV_DIR)\x86\vc12\lib\opencv_imgproc249d.lib
+CONFIG(debug, debug|release) {
+    LIBS+=$(OPENCV_DIR)\x86\vc12\lib\opencv_core249d.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_highgui249d.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_imgproc249d.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_objdetect249d.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_features2d249d.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_contrib249d.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_calib3d249d.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_video249d.lib
+} else {
+    LIBS+=$(OPENCV_DIR)\x86\vc12\lib\opencv_core249.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_highgui249.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_imgproc249.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_objdetect249.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_features2d249.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_contrib249.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_calib3d249.lib \
+    $(OPENCV_DIR)\x86\vc12\lib\opencv_video249.lib
+}
 
 SOURCES += main.cpp \
-mainwindow.cpp \
-datacontext.cpp \
+    mainwindow.cpp \
+    datacontext.cpp \
     opencvutil.cpp \
     facedetection.cpp \
     source_lib/findEyeCenter.cpp \
@@ -30,7 +45,7 @@ datacontext.cpp \
     dialogvideosource.cpp
 
 HEADERS  += mainwindow.h \
-datacontext.h \
+    datacontext.h \
     opencvutil.h \
     facedetection.h \
     source_lib/constants.h \
@@ -43,6 +58,4 @@ datacontext.h \
 FORMS    += mainwindow.ui \
     dialogParam.ui \
     dialogvideosource.ui
-
-RESOURCES +=
 
