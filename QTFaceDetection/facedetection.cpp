@@ -1197,7 +1197,7 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
     double dw = DESIRED_FACE_WIDTH;
     double dh = DESIRED_FACE_HEIGHT;
     Point faceCenter = Point(cvRound(dw/2),cvRound(dh*0.4));
-    Size size = Size(cvRound(dw*0.6),cvRound(dh*0.9));	// why 50% x 80% ???
+    Size size = Size(cvRound(dw*0.5),cvRound(dh*0.8));	// why 50% x 80% ???
     ellipse(mask,faceCenter,size,0,0,360,Scalar(0),CV_FILLED);
     whole_face.setTo(Scalar(128),mask);
     //imshow("Processed",wholeFace);
