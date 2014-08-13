@@ -56,6 +56,7 @@ struct face_descriptor
     bool _recognized;               // flag to indicate if this face has been recognized or not
     int _label;                     // label of this face in face database if recognized
     Mat _image;                     // the face image to be displayed to user
+    int _invalid_number;			// indicate if need to re-detect
 };
 
 // structure to describe the detect/track/recognize patameters:
@@ -76,8 +77,8 @@ struct face_parameter{
 #define DEF_MAX_FACES               (5)
 #define DEF_MIN_KP_COUNT            (16)
 #define DEF_MIN_TEMP_FACES          (10)
-#define DEF_SIMILAR_GATE            (0.4)
-#define DEF_TEMP_SIMILAR_GATE       (0.3)
+#define DEF_SIMILAR_GATE            (0.3)
+#define DEF_TEMP_SIMILAR_GATE       (0.15)
 
 class FaceDetection
 {
@@ -107,14 +108,17 @@ public:
      */
     bool DetectFace(Mat& frame, size_t frame_index);
     /**
-     * @brief CreateFaceTemplate: create normalized face from frame
-     * @param frame: in which to extrace normalized face
-     * @param frame_index: index of frame
-     * @param b_start: flag indicate frame is the first frame to create face template
-     * @return true: face templated created and saved, otherwise false.
-     * @note face templates will saved in face_database_folder, the parameter of Initialize()
+     * @brief CreateFaceTemplate: create one normalized face from frame
+     * @param temp_face: created face template
+     * @return true: one face templated created and saved in temp_face, otherwise false.
      */
-    bool CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_start = false, size_t* p_created = nullptr);
+    bool CreateFaceTemplate(Mat& temp_face);
+    /**
+     * @brief ExtractFace: extract target face from frame
+     * @param face: face to be extracted
+     * @return true: one face extraced and saved in temp_face, otherwise false.
+     */
+    bool ExtractFace(Mat& face);
     /**
      * @brief RecognizeFace: recognize faces in frame
      * @param frame: in which to recognize faces
@@ -185,7 +189,7 @@ protected:
 protected:
     // face normalization:
     bool _database_updated;
-    bool _bcreating_temp;
+    bool _brecognizing;
     bool _really_eyes(vector<Rect>& eye_rects, Rect& face_rect, vector<Point2f>& face_corner);
     bool _create_one_norm_face(size_t face_index,
                                Mat& gray_frame,
@@ -203,7 +207,7 @@ protected:
 private:
     struct face_descriptor *CurFaceInfo;
     vector<Mat> NormFaceInfo;
-    void _reset_face_info(); // reset CurFaceInfo
+    void _reset_face_info(size_t face_index); // reset CurFaceInfo
     bool _find_free_node(size_t& index);
     size_t _cur_face_count();
     size_t _rec_face_count();

@@ -2,8 +2,8 @@
 
 // just for debug, to be removed later......
 #undef DEBUG_MSG
-#define DEBUG_MSG       0
-#if(DEBUG_MSG == 1)
+#define DEBUG_MSG       1
+#if (DEBUG_MSG == 1)
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -12,6 +12,8 @@ using std::endl;
 #define SET_MIN(x, min)		do{if((x) < (min)) (x) = (min);}while(0)
 #define SET_MAX(x, max)		do{if((x) > (max)) (x) = (max);}while(0)
 
+//////////////////////////////////////////////////////////////////////////
+
 FaceDetection::FaceDetection()
     : MAX_FACES(DEF_MAX_FACES)
     , MIN_KP_COUNT(DEF_MIN_KP_COUNT)
@@ -19,21 +21,20 @@ FaceDetection::FaceDetection()
     , TEMP_SIMILAR_GATE(DEF_TEMP_SIMILAR_GATE)
     , MIN_TEMP_FACES(DEF_MIN_TEMP_FACES)
     , RNG(12345)
-    , DESIRED_LEFT_EYE_X(0.16)
-    , DESIRED_LEFT_EYE_Y(0.14)
-    , DESIRED_RIGHT_EYE_X(1 - 0.16)
-    , DESIRED_RIGHT_EYE_Y(1 - 0.14)
-    , DESIRED_FACE_WIDTH(150)
-    , DESIRED_FACE_HEIGHT(150)
     , MIN_EYES_DISTANCE(20)
     , DIS_IMAGE_SIZE(200, 200)
     , feature_detector(400, 0.01, 5.0, 3, true, 0.04)
     , CurFaceInfo(nullptr)
     , model(nullptr)
     , _database_updated(false)
-    , _bcreating_temp(false)
+    , _brecognizing(false)
 {
-
+    DESIRED_LEFT_EYE_X = 0.20;
+    DESIRED_LEFT_EYE_Y = 0.20;
+    DESIRED_RIGHT_EYE_X = 1 - DESIRED_LEFT_EYE_X;
+    DESIRED_RIGHT_EYE_Y = 1 - DESIRED_LEFT_EYE_Y;
+    DESIRED_FACE_WIDTH = 150;
+    DESIRED_FACE_HEIGHT = 150;
 }
 
 ///////////////////////////////// Public interface //////////////////////////////////////
@@ -91,12 +92,15 @@ bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
     CurFaceInfo = new struct face_descriptor[MAX_FACES];
     if(!CurFaceInfo)
     {
-        #if(DEBUG_MSG == 1)
+        #if (DEBUG_MSG == 1)
         cout << "Cannot malloc face descriptor buffer.\n";
         #endif
         return false;
     }
-    _reset_face_info();
+    for(size_t i=0; i<MAX_FACES; ++i)
+    {
+        _reset_face_info(i);
+    }
 
     // normalized faces:
     NormFaceInfo.clear();
@@ -106,7 +110,7 @@ bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
     {
         if(!frontal_face_detector.load("xml/haarcascade_frontalface_alt.xml"))
         {
-            #if(DEBUG_MSG == 1)
+            #if (DEBUG_MSG == 1)
             cout << "Cannot load front face cascade file.\n";
             #endif
             Deinitialize();
@@ -117,7 +121,7 @@ bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
     {
         if(!profile_face_detector.load("./xml/haarcascade_profileface.xml"))
         {
-            #if(DEBUG_MSG == 1)
+            #if (DEBUG_MSG == 1)
             cout << "Cannot load profile face cascade file.\n";
             #endif
             Deinitialize();
@@ -131,7 +135,7 @@ bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
     {
         if(!normal_eye_detector.load("./xml/haarcascade_eye.xml"))
         {
-            #if(DEBUG_MSG == 1)
+            #if (DEBUG_MSG == 1)
             cout << "Cannot load eye cascade file.\n";
             #endif
             Deinitialize();
@@ -142,7 +146,7 @@ bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
     {
         if(!glasses_eye_detector.load("./xml/haarcascade_eye_tree_eyeglasses.xml"))
         {
-            #if(DEBUG_MSG == 1)
+            #if (DEBUG_MSG == 1)
             cout << "Cannot load glasses cascade file.\n";
             #endif
             Deinitialize();
@@ -184,12 +188,13 @@ void FaceDetection::Deinitialize()
 
 bool FaceDetection::DetectFace(Mat& frame, size_t frame_index)
 {
-    size_t ratio(1);
+    _brecognizing = false;
 
     // update frame:
     _SetTargetFrame(frame, frame_index);
 
     // if there is face be tracking, decrease freq:
+    size_t ratio(1);
     if(_cur_face_count() > 0)
         ratio = 10;
 
@@ -207,83 +212,85 @@ bool FaceDetection::DetectFace(Mat& frame, size_t frame_index)
     return _cur_face_count() ? true : false;
 }
 
-bool FaceDetection::CreateFaceTemplate(Mat& frame, size_t frame_index, bool b_start/* = false*/, size_t* p_created/* = nullptr*/)
+bool FaceDetection::CreateFaceTemplate(Mat& temp_face)
 {
-    // set flag:
-    _bcreating_temp = true;
-
-    // we should have a new start:
-    if(b_start)
+    // we only extract one face in the frame:
+    size_t face_index;
+    for(face_index=0; face_index<MAX_FACES; ++face_index)
     {
-        // remove previous faces:
-        NormFaceInfo.clear();
+        if(CurFaceInfo[face_index]._valid)
+            break;
     }
+    if(face_index >= MAX_FACES)
+        return false;
 
-    // there must be faces detected:
-    if(!DetectFace(frame, frame_index))
+    // try to create normalized face:
+    Mat whole_face;
+    if(!_create_one_norm_face(face_index, norm_gray_frame, whole_face))
     {
-        if(p_created)
-            *p_created = NormFaceInfo.size();
         return false;
     }
 
-    // we try to create every 20 frame:
-    if((frame_no % 20) == 0)
+    // check if valid normalized face:
+    if(!_valid_norm_face(whole_face))
     {
-        // we only extract one face in the frame:
-        size_t face_index;
-        for(face_index=0; face_index<MAX_FACES; ++face_index)
-        {
-            if(CurFaceInfo[face_index]._valid)
-                break;
-        }
-
-        // try to create normalized face:
-        Mat whole_face;
-        if(_create_one_norm_face(face_index, norm_gray_frame, whole_face))
-        {
-            if(_valid_norm_face(whole_face))
-            {
-                NormFaceInfo.push_back(whole_face);
-            }
-        }
-
-        // check if enough to put into database:
-        #if(DEBUG_MSG == 1)
-        cout << "Current norm face size = " << NormFaceInfo.size() << endl;
-        #endif
-        if(NormFaceInfo.size() >= MIN_TEMP_FACES)
-        {
-            // save it:
-            if(_save_norm_faces())
-            {
-                NormFaceInfo.clear();
-                _database_updated = true;   // make face recognizer re-init as database updated....
-                if(p_created)
-                    *p_created = NormFaceInfo.size();
-                return true;
-            }
-        }
+        return false;
     }
-    if(p_created)
-        *p_created = NormFaceInfo.size();
-    return false;
+
+    // ok, we get one face:
+    temp_face = whole_face.clone();
+
+    return true;
+}
+
+bool FaceDetection::ExtractFace(Mat& face)
+{
+    size_t face_index;
+    for(face_index=0; face_index<MAX_FACES; ++face_index)
+    {
+        if(CurFaceInfo[face_index]._valid)
+            break;
+    }
+    if(face_index >= MAX_FACES)
+        return false;
+
+    face = CurFaceInfo[face_index]._image.clone();
+    return true;
 }
 
 bool FaceDetection::RecognizeFace(Mat& frame, size_t frame_index, bool b_redetect/* = false*/)
 {
     // set flag:
-    _bcreating_temp = false;
+    _brecognizing = true;
 
     // re-detect???
     if(b_redetect)
     {
         // invalid all current info:
-        _reset_face_info();
+        for(size_t i=0; i<MAX_FACES; ++i)
+            _reset_face_info(i);
     }
 
-    // if there is no face detected, do nothing:
-    if(!DetectFace(frame, frame_index))
+    // update frame:
+    _SetTargetFrame(frame, frame_index);
+
+    // if there is face be tracking, decrease freq:
+    size_t ratio(1);
+    if(_cur_face_count() > 0)
+        ratio = 10;
+
+    // we detect faces every 10 frames:
+    if((frame_no % ratio) == 0)
+        _DetectFace();
+
+    // we must track faces every frame:
+    _TrackFace();
+
+    // update information:
+    _RefreshFaceInfo();
+
+    // check if face be tracking:
+    if(_cur_face_count() == 0)
         return false;
 
     // we recognize every 10 frame:
@@ -353,7 +360,8 @@ void FaceDetection::_UpdateStatus(size_t mask)
             #endif
             return;
         }
-        _reset_face_info();
+        for(size_t i=0; i<MAX_FACES; ++i)
+            _reset_face_info(i);
 
         // norm faces:
         NormFaceInfo.clear();
@@ -455,7 +463,6 @@ void FaceDetection::_DetectFace()
         CurFaceInfo[free_index]._mask_roi = mask_roi[i];
         CurFaceInfo[free_index]._old_points.clear(); // new-valid node, clear old_points! important!
         CurFaceInfo[free_index]._recognized = false; // clear flag!!!
-        _build_display_image(target_frame, CurFaceInfo[free_index]._image, Faces[i]);
 
         // detect keypoints:
         _detect_keypoints(target_frame,
@@ -551,27 +558,22 @@ void FaceDetection::_TrackFace()
             }
             else
             {
+                // record raw face:
+                Rect face_rect;
+                _points_to_rect(cur_corners, face_rect);
+                _build_display_image(target_frame, CurFaceInfo[face_index]._image, face_rect);
+
                 // check if need recognize:
-                if(_bcreating_temp)
-                {
-                    color = Scalar(255, 0, 0);
-                    if(frame_no % 2 == 0)
-                    {
-                        cv::line(target_frame, cur_corners[0], cur_corners[1], color, 2);
-                        cv::line(target_frame, cur_corners[1], cur_corners[2], color, 2);
-                        cv::line(target_frame, cur_corners[2], cur_corners[3], color, 2);
-                        cv::line(target_frame, cur_corners[3], cur_corners[0], color, 2);
-                    }
-                }
-                else
-                {
+                if(_brecognizing)
                     color = CurFaceInfo[face_index]._recognized ? Scalar(0, 0, 255) : Scalar(0, 255, 0);
-                    //-- Draw lines between the corners (the mapped object in the scene - image_2 )
-                    cv::line(target_frame, cur_corners[0], cur_corners[1], color, 2);
-                    cv::line(target_frame, cur_corners[1], cur_corners[2], color, 2);
-                    cv::line(target_frame, cur_corners[2], cur_corners[3], color, 2);
-                    cv::line(target_frame, cur_corners[3], cur_corners[0], color, 2);
-                }
+                else
+                    color = Scalar(0, 255, 0);
+
+                //-- Draw lines between the corners (the mapped object in the scene - image_2 )
+                line(target_frame, cur_corners[0], cur_corners[1], color, 2);
+                line(target_frame, cur_corners[1], cur_corners[2], color, 2);
+                line(target_frame, cur_corners[2], cur_corners[3], color, 2);
+                line(target_frame, cur_corners[3], cur_corners[0], color, 2);
 
                 // update previous cornners:
                 CurFaceInfo[face_index]._old_corners[0] = cur_corners[0];
@@ -696,12 +698,12 @@ double FaceDetection::_cal_line_length(Point2f& p1, Point2f& p2)
 void FaceDetection::_build_display_image(Mat& frame, Mat& face, Rect face_rect)
 {
     Size screen_size;
-    screen_size.width = screen_corners[2].x - screen_corners[0].x;
-    screen_size.height = screen_corners[2].y - screen_corners[0].y;
-    int dx = face_rect.width / 8;
-    int dy = face_rect.height / 8;
+    screen_size.width = (int)(screen_corners[2].x - screen_corners[0].x);
+    screen_size.height = (int)(screen_corners[2].y - screen_corners[0].y);
+    int dx = face_rect.width / 16;
+    int dy = face_rect.height / 16;
     face_rect.x -= dx;
-    face_rect.y -= dy;
+    face_rect.y -= dy * 2;
     face_rect.width += dx * 2;
     face_rect.height += dy * 2;
     SET_MIN(face_rect.x, 0);
@@ -713,17 +715,15 @@ void FaceDetection::_build_display_image(Mat& frame, Mat& face, Rect face_rect)
 }
 
 // invalid all face info:
-void FaceDetection::_reset_face_info()
+void FaceDetection::_reset_face_info(size_t face_index)
 {
-    for(size_t i=0; i<MAX_FACES; ++i)
-    {
-        CurFaceInfo[i]._valid = false;
-        CurFaceInfo[i]._old_points.clear();
-        CurFaceInfo[i]._cur_points.clear();
-        CurFaceInfo[i]._old_corners.clear();
-        CurFaceInfo[i]._recognized = false;
-        CurFaceInfo[i]._image = Mat();
-    }
+    CurFaceInfo[face_index]._valid = false;
+    CurFaceInfo[face_index]._old_points.clear();
+    CurFaceInfo[face_index]._cur_points.clear();
+    CurFaceInfo[face_index]._old_corners.clear();
+    CurFaceInfo[face_index]._recognized = false;
+    CurFaceInfo[face_index]._image = Mat();
+    CurFaceInfo[face_index]._invalid_number = 0;
 }
 
 // find free face descriptor:
@@ -1044,9 +1044,16 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
             #if(DEBUG_MSG == 1)
             cout << "Error: not really eyes detected." << endl;
             #endif
+            CurFaceInfo[face_index]._invalid_number++;
+            if(CurFaceInfo[face_index]._invalid_number >= 3) // when 3 times not extract eyes, we re-detect....
+            {
+                cout << "re-detect occur..." << endl;
+                _reset_face_info(face_index);
+            }
             return false;
         }
     }
+    CurFaceInfo[face_index]._invalid_number = 0; // reset counter...
     //for(size_t i=0; i<EyeRect.size(); ++i)
     //	rectangle(face_image, EyeRect[i], Scalar(255), 2, 8);
     //imshow("opencv eyes", face_image);
@@ -1098,8 +1105,8 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
     {
         rectangle(show_face, EyeRect[idx0], Scalar(255), 1, 8, 0);
         rectangle(show_face, EyeRect[idx1], Scalar(255), 1, 8, 0);
-        imshow("eye1", show_face);
-        #if(DEBUG_MSG == 1)
+        //imshow("eye1", show_face);
+        #if (DEBUG_MSG == 1)
         cout << "Error: two eyes too close." << endl;
         #endif
         return false;
@@ -1133,7 +1140,7 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
     double dx = (rightEye.x - leftEye.x);
     double len = sqrt(dx*dx+dy*dy);
     double angle = atan2(dy,dx)*180/CV_PI;
-    double desiredLen = (DESIRED_RIGHT_EYE_X - 0.16);
+    double desiredLen = (DESIRED_RIGHT_EYE_X - DESIRED_LEFT_EYE_X);
     double scale = desiredLen*DESIRED_FACE_WIDTH/len;
     Mat rot_mat = getRotationMatrix2D(eyesCenter,angle,scale);
     double ex = DESIRED_FACE_WIDTH/2 - eyesCenter.x; //
@@ -1190,12 +1197,12 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
     double dw = DESIRED_FACE_WIDTH;
     double dh = DESIRED_FACE_HEIGHT;
     Point faceCenter = Point(cvRound(dw/2),cvRound(dh*0.4));
-    Size size = Size(cvRound(dw*0.5),cvRound(dh*0.8));	// why 50% x 80% ???
+    Size size = Size(cvRound(dw*0.6),cvRound(dh*0.9));	// why 50% x 80% ???
     ellipse(mask,faceCenter,size,0,0,360,Scalar(0),CV_FILLED);
     whole_face.setTo(Scalar(128),mask);
     //imshow("Processed",wholeFace);
 
-    #if(DEBUG_MSG == 1)
+    #if (DEBUG_MSG == 1)
     cout << "create one normalized face success!" << endl;
     #endif
     return true;
@@ -1207,10 +1214,10 @@ bool FaceDetection::_valid_norm_face(Mat& new_face)
     for(size_t i=0; i<NormFaceInfo.size(); ++i)
     {
         similar = _get_similarity(NormFaceInfo[i], new_face);
-        #if(DEBUG_MSG == 1)
+        #if (DEBUG_MSG == 1)
         cout << "similarity = " << similar << endl;
         #endif
-        if(similar < TEMP_SIMILAR_GATE)
+        if(similar < TEMP_SIMILAR_GATE || similar > 0.5)
             return false;
     }
     return true;
@@ -1219,7 +1226,7 @@ bool FaceDetection::_valid_norm_face(Mat& new_face)
 bool FaceDetection::_save_norm_faces()
 {
     QString sub_folder, file_name;
-    #if(DEBUG_MSG == 1)
+    #if (DEBUG_MSG == 1)
     cout << "save captured norm faces into file..." << endl;
     #endif
     int lib_index = 1;
@@ -1244,12 +1251,12 @@ bool FaceDetection::_save_norm_faces()
                 return false;
         }
     }
-
     for(size_t i=0; i<NormFaceInfo.size(); ++i)
     {
         file_name.sprintf("%s/%d.pgm", sub_folder.toStdString().c_str(), i+1);
         cv::imwrite(file_name.toStdString(), NormFaceInfo[i]);
     }
+
     return true;
 }
 
@@ -1257,7 +1264,7 @@ bool FaceDetection::_save_norm_faces()
 
 bool FaceDetection::_init_face_recognizer()
 {
-    #if(DEBUG_MSG == 1)
+    #if (DEBUG_MSG == 1)
     cout << "init recognizer model..." << endl;
     #endif
     if(model)
@@ -1295,12 +1302,12 @@ bool FaceDetection::_init_face_recognizer()
     }
     if(faces.size() <= 1)
     {
-        #if(DEBUG_MSG == 1)
+        #if (DEBUG_MSG == 1)
         cout << "Error: faces not enough! - size = " << faces.size() << endl;
         #endif
         return false;
     }
-    #if(DEBUG_MSG == 1)
+    #if (DEBUG_MSG == 1)
     cout << "faces for recognize = " << faces.size() << endl;
     #endif
 
@@ -1308,7 +1315,7 @@ bool FaceDetection::_init_face_recognizer()
     bool haveContribModule = cv::initModule_contrib();
     if (!haveContribModule)
     {
-        #if(DEBUG_MSG == 1)
+        #if (DEBUG_MSG == 1)
         cout << "Error: The 'contrib' module is needed for FaceRecognizer but has not been loaded into OpenCV!" << endl;
         #endif
         return false;
@@ -1318,7 +1325,7 @@ bool FaceDetection::_init_face_recognizer()
     model = cv::Algorithm::create<FaceRecognizer>(facerecAlgorithm);
     if(model.empty())
     {
-        #if(DEBUG_MSG == 1)
+        #if (DEBUG_MSG == 1)
         cout << "Error : no such algorithm" << endl;
         #endif
         return false;
