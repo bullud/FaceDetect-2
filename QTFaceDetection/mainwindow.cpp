@@ -385,7 +385,10 @@ void MainWindow::deleteItem()
 
 void MainWindow::deleteItemTemplate()
 {
-    delete ui->listWidgetTemplateFace->currentItem();
+    auto currentItem = ui->listWidgetTemplateFace->currentItem();
+    int index = currentItem->data(Qt::UserRole).toInt();
+    faceTemplates_.erase(faceTemplates_.begin() + index);
+    delete currentItem;
 }
 
 void MainWindow::on_actionVideoSource_triggered()
