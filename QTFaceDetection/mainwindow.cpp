@@ -19,7 +19,6 @@ MainWindow::MainWindow(QWidget *parent) :
     actionGroup(new QActionGroup(this)),
     videoWriter_(nullptr),
     frame_index_(0),
-    bfirst_(true),
     bredetect_(false)
 {
     ui->setupUi(this);
@@ -174,18 +173,11 @@ void MainWindow::OnTimeout()
     {
         if(faceDetection_.RecognizeFace(frame, frame_index_, bredetect_))
         {
-            const struct face_descriptor *cur_face_info = faceDetection_.GetCurFaceInfo();
-            face_parameter param;
-            faceDetection_.QueryParameters(&param);
-            for(size_t face_index=0; face_index<param._max_faces; ++face_index)
+            vector<struct recognized_info> recognized_faces;
+            if(faceDetection_.QueryRecognizedFaces(recognized_faces))
             {
-                if(!cur_face_info[face_index]._valid)
-                    continue;
-                if(!cur_face_info[face_index]._recognized)
-                    continue;
-                //imshow("test", cur_face_info[face_index]._image); // just test, and to be removed......
-                //do process...
-                OpenCVUtil::AddFaceItem(ui->listWidget, cur_face_info[face_index]._image, cur_face_info[face_index]._label);
+                for(size_t i=0; i<recognized_faces.size(); ++i)
+                    OpenCVUtil::AddFaceItem(ui->listWidget, recognized_faces[i]._image, recognized_faces[i]._label);
             }
         }
         // we no need re-detect in default...
@@ -195,8 +187,11 @@ void MainWindow::OnTimeout()
     {
         if (dataContext_.GetTemplateStatus())
         {
-            if(faceDetection_.CreateFaceTemplate(frame, frame_index_, bfirst_, &createdTemplates))
+            // just detect/track face....
+            faceDetection_.DetectFace(frame, frame_index_);
+            /*
             {
+
                 face_parameter param;
                 faceDetection_.QueryParameters(&param);
                 ui->progressBarFaceTemplate->setValue(createdTemplates * 100 / param._min_temp_faces);
@@ -227,6 +222,7 @@ void MainWindow::OnTimeout()
                 faceDetection_.QueryParameters(&param);
                 ui->progressBarFaceTemplate->setValue(createdTemplates * 100 / param._min_temp_faces);
             }
+            */
         }
     }
     else if (dataContext_.GetMode() == RECORD)
@@ -307,6 +303,44 @@ void MainWindow::on_pushButton_2_clicked()
 
 void MainWindow::on_pushButtonStartStopTemplate_clicked()
 {
+    // when face templates not enough, do below....
+
+    // the first face is unpressed face, when recognize one face, show this face to
+    // tell user who is the recognized face, this face will also be save in face database...
+    Mat face;
+    if(faceTemplates_.empty())
+    {
+        // extract one unpressed face:
+        if(faceDetection_.ExtractFace(face))
+        {
+            // 1. show it in list box:
+
+
+            // 2. save it:
+            faceTemplates_.push_back(face);
+        }
+    }
+    else
+    {
+        // get one normalized face:
+        if((faceDetection_.CreateFaceTemplate(face)))
+        {
+            // 1. display it in listbox:
+
+
+            // 2. save it:
+            faceTemplates_.push_back(face);
+        }
+    }
+
+    // when face templates enough, do save action as below...
+    if(!faceDetection_.SaveFaceTemplates(faceTemplates_))
+    {
+        // pop up message box tell the error!
+    }
+
+
+    /*
     dataContext_.SetTemplateStatus(!dataContext_.GetTemplateStatus());
 
     if (dataContext_.GetTemplateStatus())
@@ -321,6 +355,7 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
         ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
         ui->progressBarFaceTemplate->hide();
     }
+    */
 
     adjustSize();
 }
@@ -333,8 +368,17 @@ void MainWindow::on_actionSetParam_triggered()
 
 void MainWindow::deleteItem()
 {
-    delete ui->listWidget->currentItem();
-    bredetect_ = true;
+    if(dataContext_.GetMode() == TEMPLATE)
+    {
+        // delete selected face template....
+        // Attention: remember to update faceTemplates vector!!!
+    }
+    else if(dataContext_.GetMode() == DETECTION)
+    {
+        // delete seletect recognized face...
+        delete ui->listWidget->currentItem();
+        bredetect_ = true;
+    }
 }
 
 void MainWindow::on_actionVideoSource_triggered()

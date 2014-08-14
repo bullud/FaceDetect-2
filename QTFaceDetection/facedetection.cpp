@@ -13,12 +13,38 @@ using std::endl;
 #define SET_MAX(x, max)		do{if((x) > (max)) (x) = (max);}while(0)
 
 //////////////////////////////////////////////////////////////////////////
+/** 
+ * functions for replacing QT relates...
+ */
+#if (USED_IN_QT == 0)
+static bool _create_directory(const CString& dir_path)
+{
+	WIN32_FIND_DATA wfd; 
+	if(FindFirstFile(dir_path, &wfd) == INVALID_HANDLE_VALUE || !(wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))  
+	{  
+		CreateDirectory((LPCTSTR)dir_path, NULL);
+		return true;
+	}  
+	return false;
+}
+
+static bool _file_exist(const CString& file_path)
+{
+	WIN32_FIND_DATA wfd; 
+	if(FindFirstFile(file_path, &wfd) != INVALID_HANDLE_VALUE && !(wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))  
+	{  
+		return true;
+	}  
+	return false;
+}
+#endif
+//////////////////////////////////////////////////////////////////////////
 
 FaceDetection::FaceDetection()
     : MAX_FACES(DEF_MAX_FACES)
     , MIN_KP_COUNT(DEF_MIN_KP_COUNT)
     , SIMILAR_GATE(DEF_SIMILAR_GATE)
-    , TEMP_SIMILAR_GATE(DEF_TEMP_SIMILAR_GATE)
+    , LIGHT_TUNING(DEF_LIGHT_TUNING)
     , MIN_TEMP_FACES(DEF_MIN_TEMP_FACES)
     , RNG(12345)
     , MIN_EYES_DISTANCE(20)
@@ -29,12 +55,12 @@ FaceDetection::FaceDetection()
     , _database_updated(false)
     , _brecognizing(false)
 {
-    DESIRED_LEFT_EYE_X = 0.20;
-    DESIRED_LEFT_EYE_Y = 0.20;
-    DESIRED_RIGHT_EYE_X = 1 - DESIRED_LEFT_EYE_X;
-    DESIRED_RIGHT_EYE_Y = 1 - DESIRED_LEFT_EYE_Y;
-    DESIRED_FACE_WIDTH = 150;
-    DESIRED_FACE_HEIGHT = 150;
+	DESIRED_LEFT_EYE_X = 0.20;
+	DESIRED_LEFT_EYE_Y = 0.20;
+	DESIRED_RIGHT_EYE_X = 1 - DESIRED_LEFT_EYE_X;
+	DESIRED_RIGHT_EYE_Y = 1 - DESIRED_LEFT_EYE_Y;
+	DESIRED_FACE_WIDTH = 150;
+	DESIRED_FACE_HEIGHT = 150;
 }
 
 ///////////////////////////////// Public interface //////////////////////////////////////
@@ -48,7 +74,7 @@ void FaceDetection::QueryParameters(struct face_parameter* param)
     param->_min_kp_count = MIN_KP_COUNT;
     param->_min_temp_faces = MIN_TEMP_FACES;
     param->_similar_gate = SIMILAR_GATE;
-    param->_temp_similar_gate = TEMP_SIMILAR_GATE;
+    param->_light_tuning = LIGHT_TUNING;
 }
 
 void FaceDetection::ModifyParameters(struct face_parameter* param)
@@ -66,29 +92,33 @@ void FaceDetection::ModifyParameters(struct face_parameter* param)
         mask |= BIT_MIN_TEMP_FACES;
     if(SIMILAR_GATE != param->_similar_gate)
         mask |= BIT_SIMILAR_GATE;
-    if(TEMP_SIMILAR_GATE != param->_temp_similar_gate)
-        mask |= BIT_TEMP_SIMILAR_GATE;
+    if(LIGHT_TUNING != param->_light_tuning)
+        mask |= BIT_LIGHT_TUNING;
 
     // update:
     MAX_FACES = param->_max_faces;
     MIN_KP_COUNT = param->_min_kp_count;
     MIN_TEMP_FACES = param->_min_temp_faces;
     SIMILAR_GATE = param->_similar_gate;
-    TEMP_SIMILAR_GATE = param->_temp_similar_gate;
+    LIGHT_TUNING = param->_light_tuning;
 
     // update related thing:
     if(mask)
         _UpdateStatus(mask);
 }
 
+#if (USED_IN_QT == 1)
 bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
+#else
+bool FaceDetection::Initialize(Size& screen, CString face_database_folder)
+#endif
 {
     // malloc face descriptor buffer:
-    if(CurFaceInfo)
-    {
-        delete [] CurFaceInfo;
-        CurFaceInfo = nullptr;
-    }
+	if(CurFaceInfo)
+	{
+		delete [] CurFaceInfo;
+		CurFaceInfo = nullptr;
+	}
     CurFaceInfo = new struct face_descriptor[MAX_FACES];
     if(!CurFaceInfo)
     {
@@ -97,13 +127,10 @@ bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
         #endif
         return false;
     }
-    for(size_t i=0; i<MAX_FACES; ++i)
+	for(size_t i=0; i<MAX_FACES; ++i)
     {
-        _reset_face_info(i);
-    }
-
-    // normalized faces:
-    NormFaceInfo.clear();
+		_reset_face_info(i);
+	}
 
     // face detector init:
     if(frontal_face_detector.empty())
@@ -168,12 +195,17 @@ bool FaceDetection::Initialize(Size& screen, QString face_database_folder)
 
     // record folder:
     top_folder = face_database_folder;
+	#if (USED_IN_QT == 1)
     QDir t;
     if(!t.exists(top_folder) && !t.mkdir(top_folder))
     {
        Deinitialize();
        return false;
     }
+	#else
+	_create_directory(top_folder); // I assume it will always success!!!
+	#endif
+
     return true;
 }
 
@@ -188,13 +220,13 @@ void FaceDetection::Deinitialize()
 
 bool FaceDetection::DetectFace(Mat& frame, size_t frame_index)
 {
-    _brecognizing = false;
+	_brecognizing = false;
 
     // update frame:
     _SetTargetFrame(frame, frame_index);
 
     // if there is face be tracking, decrease freq:
-    size_t ratio(1);
+	size_t ratio(1);
     if(_cur_face_count() > 0)
         ratio = 10;
 
@@ -214,48 +246,108 @@ bool FaceDetection::DetectFace(Mat& frame, size_t frame_index)
 
 bool FaceDetection::CreateFaceTemplate(Mat& temp_face)
 {
-    // we only extract one face in the frame:
-    size_t face_index;
-    for(face_index=0; face_index<MAX_FACES; ++face_index)
-    {
-        if(CurFaceInfo[face_index]._valid)
-            break;
-    }
-    if(face_index >= MAX_FACES)
-        return false;
+	// we only extract one face in the frame:
+	size_t face_index;
+	for(face_index=0; face_index<MAX_FACES; ++face_index)
+	{
+		if(CurFaceInfo[face_index]._valid)
+			break;
+	}
+	if(face_index >= MAX_FACES)
+		return false;
 
-    // try to create normalized face:
-    Mat whole_face;
-    if(!_create_one_norm_face(face_index, norm_gray_frame, whole_face))
-    {
-        return false;
-    }
+	// try to create normalized face:
+	Mat whole_face;
+	if(!_create_one_norm_face(face_index, norm_gray_frame, whole_face))
+	{
+		return false;
+	}
 
-    // check if valid normalized face:
-    if(!_valid_norm_face(whole_face))
-    {
-        return false;
-    }
-
-    // ok, we get one face:
-    temp_face = whole_face.clone();
+	// ok, we get one face:
+	temp_face = whole_face.clone();
 
     return true;
 }
 
 bool FaceDetection::ExtractFace(Mat& face)
 {
-    size_t face_index;
-    for(face_index=0; face_index<MAX_FACES; ++face_index)
-    {
-        if(CurFaceInfo[face_index]._valid)
-            break;
-    }
-    if(face_index >= MAX_FACES)
-        return false;
+	size_t face_index;
+	for(face_index=0; face_index<MAX_FACES; ++face_index)
+	{
+		if(CurFaceInfo[face_index]._valid)
+			break;
+	}
+	if(face_index >= MAX_FACES)
+		return false;
 
-    face = CurFaceInfo[face_index]._image.clone();
-    return true;
+	face = CurFaceInfo[face_index]._image.clone();
+	return true;
+}
+
+bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates)
+{
+	#if (USED_IN_QT == 1)
+	QString sub_folder, file_name;
+	#else
+	CString sub_folder, file_name;
+	#endif
+
+	#if (DEBUG_MSG == 1)
+	cout << "save captured normalized faces into file..." << endl;
+	#endif
+	int lib_index = 1;
+
+	if(face_templates.size() <= 1)
+		return false;
+
+	// create top folder:
+	#if (USED_IN_QT == 1)
+	QDir t;
+	while(1)
+	{
+		sub_folder.sprintf("%s/s%d", top_folder.toStdString().c_str(), lib_index);
+		if(t.exists(sub_folder))
+		{
+			lib_index++;
+		}
+		else
+		{
+			if(t.mkdir(sub_folder))
+				break;
+			else
+				return false;
+		}
+	}
+	// save unprocessed face:
+	file_name.sprintf("%s/show.pgm", sub_folder.toStdString().c_str());
+	cv::imwrite(file_name.toStdString(), face_templates[0]);
+	// save normalized faces:
+	for(size_t i=1; i<face_templates.size(); ++i)
+	{
+		file_name.sprintf("%s/%d.pgm", sub_folder.toStdString().c_str(), i);
+		cv::imwrite(file_name.toStdString(), face_templates[i]);
+	}
+	#else // #if (USED_IN_QT == 1)
+	USES_CONVERSION;
+	while(1)
+	{
+		sub_folder.Format(_T("%s/s%d"), top_folder, lib_index);
+		if(_create_directory(sub_folder))
+			break;
+		lib_index++;
+	}
+	// save unprocessed face:
+	file_name.Format(_T("%s/show.pgm"), sub_folder);
+	cv::imwrite(W2A(file_name), face_templates[0]);
+	// save normalized faces:
+	for(size_t i=1; i<face_templates.size(); ++i)
+	{
+		file_name.Format(_T("%s/%d.pgm"), sub_folder, i);
+		cv::imwrite(W2A(file_name), face_templates[i]);
+	}
+	#endif
+
+	return true;
 }
 
 bool FaceDetection::RecognizeFace(Mat& frame, size_t frame_index, bool b_redetect/* = false*/)
@@ -267,31 +359,31 @@ bool FaceDetection::RecognizeFace(Mat& frame, size_t frame_index, bool b_redetec
     if(b_redetect)
     {
         // invalid all current info:
-        for(size_t i=0; i<MAX_FACES; ++i)
-            _reset_face_info(i);
+		for(size_t i=0; i<MAX_FACES; ++i)
+			_reset_face_info(i);
     }
 
-    // update frame:
-    _SetTargetFrame(frame, frame_index);
+	// update frame:
+	_SetTargetFrame(frame, frame_index);
 
-    // if there is face be tracking, decrease freq:
-    size_t ratio(1);
-    if(_cur_face_count() > 0)
-        ratio = 10;
+	// if there is face be tracking, decrease freq:
+	size_t ratio(1);
+	if(_cur_face_count() > 0)
+		ratio = 10;
 
-    // we detect faces every 10 frames:
-    if((frame_no % ratio) == 0)
-        _DetectFace();
+	// we detect faces every 10 frames:
+	if((frame_no % ratio) == 0)
+		_DetectFace();
 
-    // we must track faces every frame:
-    _TrackFace();
+	// we must track faces every frame:
+	_TrackFace();
 
-    // update information:
-    _RefreshFaceInfo();
+	// update information:
+	_RefreshFaceInfo();
 
-    // check if face be tracking:
-    if(_cur_face_count() == 0)
-        return false;
+	// check if face be tracking:
+	if(_cur_face_count() == 0)
+		return false;
 
     // we recognize every 10 frame:
     if((frame_no % 10) == 0)
@@ -320,7 +412,7 @@ bool FaceDetection::RecognizeFace(Mat& frame, size_t frame_index, bool b_redetec
             if(!_create_one_norm_face(face_index, norm_gray_frame, whole_face))
             {
                 // can not create normalized face, go to next...
-                #if(DEBUG_MSG == 1)
+                #if (DEBUG_MSG == 1)
                 cout << "failed to create normalized face." << endl;
                 #endif
                 continue;
@@ -342,6 +434,40 @@ bool FaceDetection::RecognizeFace(Mat& frame, size_t frame_index, bool b_redetec
     return recognized_faces ? true : false;
 }
 
+bool FaceDetection::QueryRecognizedFaces(vector<struct recognized_info>& recognized_faces)
+{
+	struct recognized_info rec_face;
+
+	//make sure empty:
+	recognized_faces.clear();
+	//check if there's faces recognized:
+	for(size_t face_index=0; face_index<MAX_FACES; ++face_index)
+	{
+		if(!CurFaceInfo[face_index]._valid)
+			continue;
+		if(!CurFaceInfo[face_index]._recognized)
+			continue;
+		//record label:
+		rec_face._label = CurFaceInfo[face_index]._label;
+
+		#if (USED_IN_QT == 1)
+		QString file_name;
+		file_name.sprintf("%s/s%d/show.pgm", top_folder.toStdString().c_str(), rec_face._label);
+		rec_face._image = cv::imread(file_name.toStdString());
+		recognized_faces.push_back(rec_face);
+		#else
+		// read show face:
+		CString file_name;
+		USES_CONVERSION;
+		file_name.Format(_T("%s/s%d/show.pgm"), top_folder, rec_face._label);
+		rec_face._image = cv::imread(W2A(file_name));
+		recognized_faces.push_back(rec_face);
+		#endif	
+	}
+
+	return recognized_faces.empty() ? false : true;
+}
+
 ///////////////////////////////// middle -level function ////////////////////////////////
 
 void FaceDetection::_UpdateStatus(size_t mask)
@@ -355,16 +481,13 @@ void FaceDetection::_UpdateStatus(size_t mask)
         CurFaceInfo = new struct face_descriptor[MAX_FACES];
         if(!CurFaceInfo)
         {
-            #if(DEBUG_MSG == 1)
+            #if (DEBUG_MSG == 1)
             cout << "[_UpdateStatus]: Cannot malloc face descriptor buffer.\n";
             #endif
             return;
         }
-        for(size_t i=0; i<MAX_FACES; ++i)
-            _reset_face_info(i);
-
-        // norm faces:
-        NormFaceInfo.clear();
+		for(size_t i=0; i<MAX_FACES; ++i)
+			_reset_face_info(i);
     }
     else if(mask & BIT_MIN_KP_COUNT)
     {
@@ -387,10 +510,9 @@ void FaceDetection::_UpdateStatus(size_t mask)
             CurFaceInfo[face_index]._label = -1;
         }
     }
-    else if(mask & BIT_TEMP_SIMILAR_GATE)
+    else if(mask & BIT_LIGHT_TUNING)
     {
-        // we have to remove all created templates as gate changed...
-        NormFaceInfo.clear();
+		// nothing to do...
     }
     else
     {
@@ -415,14 +537,14 @@ void FaceDetection::_DetectFace()
     vector<Mat> mask_roi;
 
     // check how many faces be tracking:
-    #if(DEBUG_MSG == 1)
+    #if (DEBUG_MSG == 1)
     size_t tracking_faces = _cur_face_count();
     #endif
 
     // decide init ROI:
     if(!_detect_faces(gray_frame, NewFaces))
     {
-        #if(DEBUG_MSG == 1)
+        #if (DEBUG_MSG == 1)
         cout << "Status: tracking faces = " << tracking_faces << ", no face detect " << (frame_no % 2 ? "0_o" : "o_0") << endl;
         #endif
         return;
@@ -438,7 +560,7 @@ void FaceDetection::_DetectFace()
         // really new face:
         Faces.push_back(NewFaces[i]);
     }
-    #if(DEBUG_MSG == 1)
+    #if (DEBUG_MSG == 1)
     cout << "Status: tracking faces = " << tracking_faces << ", detect -> (new/all) = " << Faces.size() << "/" << NewFaces.size() << endl;
     #endif
 
@@ -470,7 +592,7 @@ void FaceDetection::_DetectFace()
                           CurFaceInfo[free_index]._face_rect,
                           CurFaceInfo[free_index]._cur_points,
                           CurFaceInfo[free_index]._old_corners);
-        #if(DEBUG_MSG == 1)
+        #if (DEBUG_MSG == 1)
         cout << free_index <<  ": new init keypoints = " << CurFaceInfo[free_index]._cur_points.size() << endl;
         #endif
     }
@@ -534,7 +656,7 @@ void FaceDetection::_TrackFace()
             Mat H = cv::estimateRigidTransform(CurFaceInfo[face_index]._old_points, CurFaceInfo[face_index]._cur_points, false);
             if(H.rows != 2 || H.cols != 3)
             {
-                #if(DEBUG_MSG == 1)
+                #if (DEBUG_MSG == 1)
                 cout << "error: H.rows = " << H.rows << ", H.cols = " << H.cols << endl;
                 #endif
                 break;
@@ -550,7 +672,7 @@ void FaceDetection::_TrackFace()
             }
             if (number_gate > 2) // when more than 2 corners out of screen, re-init:
             {
-                #if(DEBUG_MSG == 1)
+                #if (DEBUG_MSG == 1)
                 cout << "corrner out of range!" << endl;
                 #endif
                 CurFaceInfo[face_index]._old_points.clear();
@@ -558,28 +680,28 @@ void FaceDetection::_TrackFace()
             }
             else
             {
-                // record raw face:
-                Rect face_rect;
-                _points_to_rect(cur_corners, face_rect);
-                _build_display_image(target_frame, CurFaceInfo[face_index]._image, face_rect);
+				// record raw face:
+				Rect face_rect;
+				_points_to_rect(cur_corners, face_rect);
+				_build_display_image(target_frame, CurFaceInfo[face_index]._image, face_rect);
 
-                // check if need recognize:
-                if(_brecognizing)
-                    color = CurFaceInfo[face_index]._recognized ? Scalar(0, 0, 255) : Scalar(0, 255, 0);
-                else
-                    color = Scalar(0, 255, 0);
+				// check if need recognize:
+				if(_brecognizing)
+					color = CurFaceInfo[face_index]._recognized ? Scalar(0, 0, 255) : Scalar(0, 255, 0);
+				else 
+					color = Scalar(0, 255, 0);
 
-                //-- Draw lines between the corners (the mapped object in the scene - image_2 )
-                line(target_frame, cur_corners[0], cur_corners[1], color, 2);
-                line(target_frame, cur_corners[1], cur_corners[2], color, 2);
-                line(target_frame, cur_corners[2], cur_corners[3], color, 2);
-                line(target_frame, cur_corners[3], cur_corners[0], color, 2);
+				//-- Draw lines between the corners (the mapped object in the scene - image_2 )
+				line(target_frame, cur_corners[0], cur_corners[1], color, 2);
+				line(target_frame, cur_corners[1], cur_corners[2], color, 2);
+				line(target_frame, cur_corners[2], cur_corners[3], color, 2);
+				line(target_frame, cur_corners[3], cur_corners[0], color, 2);
 
-                // update previous cornners:
-                CurFaceInfo[face_index]._old_corners[0] = cur_corners[0];
-                CurFaceInfo[face_index]._old_corners[1] = cur_corners[1];
-                CurFaceInfo[face_index]._old_corners[2] = cur_corners[2];
-                CurFaceInfo[face_index]._old_corners[3] = cur_corners[3];
+				// update previous cornners:
+				CurFaceInfo[face_index]._old_corners[0] = cur_corners[0];
+				CurFaceInfo[face_index]._old_corners[1] = cur_corners[1];
+				CurFaceInfo[face_index]._old_corners[2] = cur_corners[2];
+				CurFaceInfo[face_index]._old_corners[3] = cur_corners[3];
             }
         }
     }
@@ -717,13 +839,13 @@ void FaceDetection::_build_display_image(Mat& frame, Mat& face, Rect face_rect)
 // invalid all face info:
 void FaceDetection::_reset_face_info(size_t face_index)
 {
-    CurFaceInfo[face_index]._valid = false;
-    CurFaceInfo[face_index]._old_points.clear();
-    CurFaceInfo[face_index]._cur_points.clear();
-    CurFaceInfo[face_index]._old_corners.clear();
-    CurFaceInfo[face_index]._recognized = false;
-    CurFaceInfo[face_index]._image = Mat();
-    CurFaceInfo[face_index]._invalid_number = 0;
+	CurFaceInfo[face_index]._valid = false;
+	CurFaceInfo[face_index]._old_points.clear();
+	CurFaceInfo[face_index]._cur_points.clear();
+	CurFaceInfo[face_index]._old_corners.clear();
+	CurFaceInfo[face_index]._recognized = false;
+	CurFaceInfo[face_index]._image = Mat();
+	CurFaceInfo[face_index]._invalid_number = 0;
 }
 
 // find free face descriptor:
@@ -959,14 +1081,14 @@ bool FaceDetection::_really_eyes(vector<Rect>& eye_rects, Rect& face_rect, vecto
     // check:
     if(left_eye_center.size() < 1)
     {
-        #if(DEBUG_MSG == 1)
+        #if (DEBUG_MSG == 1)
         cout << "Error: no left eye." << endl;
         #endif
         return false;
     }
     if(right_eye_center.size() < 1)
     {
-        #if(DEBUG_MSG == 1)
+        #if (DEBUG_MSG == 1)
         cout << "Error: no right eye." << endl;
         #endif
         return false;
@@ -1044,16 +1166,16 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
             #if(DEBUG_MSG == 1)
             cout << "Error: not really eyes detected." << endl;
             #endif
-            CurFaceInfo[face_index]._invalid_number++;
-            if(CurFaceInfo[face_index]._invalid_number >= 3) // when 3 times not extract eyes, we re-detect....
-            {
-                cout << "re-detect occur..." << endl;
-                _reset_face_info(face_index);
-            }
+			CurFaceInfo[face_index]._invalid_number++;
+			if(CurFaceInfo[face_index]._invalid_number >= 3) // when 3 times not extract eyes, we re-detect....
+			{
+				cout << "re-detect occur..." << endl;
+				_reset_face_info(face_index);
+			}
             return false;
         }
     }
-    CurFaceInfo[face_index]._invalid_number = 0; // reset counter...
+	CurFaceInfo[face_index]._invalid_number = 0; // reset counter...
     //for(size_t i=0; i<EyeRect.size(); ++i)
     //	rectangle(face_image, EyeRect[i], Scalar(255), 2, 8);
     //imshow("opencv eyes", face_image);
@@ -1208,54 +1330,18 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
     return true;
 }
 
-bool FaceDetection::_valid_norm_face(Mat& new_face)
+bool FaceDetection::_valid_norm_face(vector<Mat>& old_faces, Mat& new_face)
 {
     double similar;
-    for(size_t i=0; i<NormFaceInfo.size(); ++i)
-    {
-        similar = _get_similarity(NormFaceInfo[i], new_face);
-        #if (DEBUG_MSG == 1)
-        cout << "similarity = " << similar << endl;
-        #endif
-        if(similar < TEMP_SIMILAR_GATE || similar > 0.5)
-            return false;
-    }
-    return true;
-}
-
-bool FaceDetection::_save_norm_faces()
-{
-    QString sub_folder, file_name;
-    #if (DEBUG_MSG == 1)
-    cout << "save captured norm faces into file..." << endl;
-    #endif
-    int lib_index = 1;
-
-    if(NormFaceInfo.empty())
-        return false;
-
-    // create top folder:
-    QDir t;
-    while(1)
-    {
-        sub_folder.sprintf("%s/s%d", top_folder.toStdString().c_str(), lib_index);
-        if(t.exists(sub_folder))
-        {
-            lib_index++;
-        }
-        else
-        {
-            if(t.mkdir(sub_folder))
-                break;
-            else
-                return false;
-        }
-    }
-    for(size_t i=0; i<NormFaceInfo.size(); ++i)
-    {
-        file_name.sprintf("%s/%d.pgm", sub_folder.toStdString().c_str(), i+1);
-        cv::imwrite(file_name.toStdString(), NormFaceInfo[i]);
-    }
+	for(size_t i=0; i<old_faces.size(); ++i)
+	{
+		similar = _get_similarity(old_faces[i], new_face);
+		#if (DEBUG_MSG == 1)
+		cout << "similarity = " << similar << endl;
+		#endif
+		if(similar < 0.15 || similar > 0.5)
+			return false;
+	}
 
     return true;
 }
@@ -1267,6 +1353,7 @@ bool FaceDetection::_init_face_recognizer()
     #if (DEBUG_MSG == 1)
     cout << "init recognizer model..." << endl;
     #endif
+
     if(model)
     {
         // re-init as the database updated....
@@ -1275,6 +1362,7 @@ bool FaceDetection::_init_face_recognizer()
     }
 
     // let's init the recongnize model:
+	#if (USED_IN_QT == 1)
     vector<Mat> faces;
     vector<int> labels;
     for(int k=1; true; k++){
@@ -1300,6 +1388,35 @@ bool FaceDetection::_init_face_recognizer()
         if(i==1)
             break;
     }
+	#else // #if (USED_IN_QT == 1)
+	vector<Mat> faces;
+	vector<int> labels;
+	bool no_file_flag = false;
+	USES_CONVERSION;
+	for(int k=1; true; k++)
+	{
+		string pathname = W2A(top_folder + _T("/s"));
+		char tmp[10];
+		_itoa_s(k,tmp,10);
+		pathname = pathname + tmp + "/";
+		int i;
+		for(i=1; true; i++)
+		{
+			char s[10];
+			_itoa_s(i,s,10);
+			string filename = pathname + s + ".pgm";
+			cout << filename.c_str() << endl;
+			if(!_file_exist(A2W(filename.c_str())))
+				break;
+			Mat face = cv::imread(filename,CV_LOAD_IMAGE_GRAYSCALE);
+			faces.push_back(face);
+			labels.push_back(k);
+		}
+		if(i==1)
+			break;
+	}
+	#endif
+
     if(faces.size() <= 1)
     {
         #if (DEBUG_MSG == 1)
@@ -1391,18 +1508,28 @@ double FaceDetection::_get_similarity(const Mat A, const Mat B)
 
 bool FaceDetection::_recognize_one_face(Mat& target_face, int& label)
 {
-    //validation:
-    Mat reconstructedFace = _reconstruct_face(target_face);
-    //imshow("reconstructed", reconstructedFace);
+	//validation first:
+	#if 1
+	//add for light compensation
+	Mat averageFace = model->get<Mat>("mean");
+	Mat face_light_change = target_face + LIGHT_TUNING;	// + 50 ???
+	Scalar mean_average = cv::mean(averageFace);
+	Scalar mean_light = cv::mean(face_light_change);
+    Mat reconstructedFace = _reconstruct_face(face_light_change - (mean_light-mean_average));
+	double gate = _get_similarity(face_light_change - (mean_light-mean_average), reconstructedFace);
+	#else
+	Mat reconstructedFace = _reconstruct_face(target_face);
     double gate = _get_similarity(target_face, reconstructedFace);
-    #if(DEBUG_MSG == 1)
+	#endif
+	//imshow("reconstructed", reconstructedFace);
+    #if (DEBUG_MSG == 1)
     cout<< "similarity = " << gate << " (gate = " << (double)SIMILAR_GATE << ")" << endl;
     #endif
     if(gate < SIMILAR_GATE)
     {
          //recognize:
         label = model->predict(target_face);
-        #if(DEBUG_MSG == 1)
+        #if (DEBUG_MSG == 1)
         cout << "identity = " << label << endl;
         #endif
         return true;

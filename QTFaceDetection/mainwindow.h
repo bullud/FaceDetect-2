@@ -34,10 +34,9 @@ private:
     std::unique_ptr<cv::VideoCapture> capture_;
     std::unique_ptr<QActionGroup> actionGroup;
     size_t frame_index_;
-    size_t createdTemplates;
-    bool bfirst_;
     bool bredetect_;
     cv::VideoWriter *videoWriter_;
+    std::vector<Mat> faceTemplates_; // contain the selected face templates, which is to be send to FaceDetection::SaveFaceTemplates()
 
 private:
     void UseCamera();

@@ -1,18 +1,30 @@
 #ifndef FACEDETECTION_H
 #define FACEDETECTION_H
 
+/** 
+ * Declearation: the FaceDetection class is to be used in both VisioStudio and QT, 
+ *				 so define this macro to control which enviroment being used...
+ */
+#define USED_IN_QT		1
+
 /**
  * Migrate description:
  *
  * 1. make all static functions to be member function.
  * 2. function parameters be kept except detectors been removed from parameter list.
+ * 3. replace QT related to VC related...
  */
 
 #include <vector>
 #include <string>
+#if (USED_IN_QT == 1)
 #include <QString>
 #include <QDir>
 #include <QFile>
+#else
+#include <windows.h>
+#include <atlstr.h>
+#endif
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -56,7 +68,14 @@ struct face_descriptor
     bool _recognized;               // flag to indicate if this face has been recognized or not
     int _label;                     // label of this face in face database if recognized
     Mat _image;                     // the face image to be displayed to user
-    int _invalid_number;			// indicate if need to re-detect
+	int _invalid_number;			// indicate if need to re-detect
+};
+
+// structure to describe faces that have been recognized only
+struct recognized_info
+{
+	int _label;                     // label of this face in face database if recognized
+	Mat _image;                     // the face image to be displayed to user
 };
 
 // structure to describe the detect/track/recognize patameters:
@@ -65,20 +84,20 @@ struct face_parameter{
     size_t _min_kp_count;           // min keypoints count needed for tracking
     size_t _min_temp_faces;         // min face template the database needed for one face
     double _similar_gate;           // for judging two faces are for same persion or not
-    double _temp_similar_gate;      // for create face template, remove too-similar faces
+    double _light_tuning;			// for light compensation 
 };
 // parameter bit mask:
 #define BIT_MAX_FACES               (1 << 0)
 #define BIT_MIN_KP_COUNT            (1 << 1)
 #define BIT_MIN_TEMP_FACES          (1 << 2)
 #define BIT_SIMILAR_GATE            (1 << 3)
-#define BIT_TEMP_SIMILAR_GATE       (1 << 4)
+#define BIT_LIGHT_TUNING			(1 << 4)
 // default parameter values:
 #define DEF_MAX_FACES               (5)
 #define DEF_MIN_KP_COUNT            (16)
 #define DEF_MIN_TEMP_FACES          (10)
 #define DEF_SIMILAR_GATE            (0.3)
-#define DEF_TEMP_SIMILAR_GATE       (0.15)
+#define DEF_LIGHT_TUNING			(100.0)
 
 class FaceDetection
 {
@@ -93,7 +112,11 @@ public:
      * @return true mean success, false mean failed.
      * @note when return false, FaceDetection class can not be used.
      */
-    bool Initialize(Size& screen_size, QString face_database_folder);
+	#if (USED_IN_QT == 1)
+	bool Initialize(Size& screen_size, QString face_database_folder);
+	#else
+    bool Initialize(Size& screen_size, CString face_database_folder);
+	#endif
     /**
      * @brief Deinitialize: to be called after using FaceDetection class.
      * @param none
@@ -113,12 +136,18 @@ public:
      * @return true: one face templated created and saved in temp_face, otherwise false.
      */
     bool CreateFaceTemplate(Mat& temp_face);
-    /**
+	/**
      * @brief ExtractFace: extract target face from frame
      * @param face: face to be extracted
      * @return true: one face extraced and saved in temp_face, otherwise false.
      */
     bool ExtractFace(Mat& face);
+	/**
+     * @brief SaveFaceTemplates: save face templates into database
+     * @param face_templates: multi face templates array
+     * @return true: face templates saved success, otherwise false.
+     */
+    bool SaveFaceTemplates(vector<Mat>& face_templates);
     /**
      * @brief RecognizeFace: recognize faces in frame
      * @param frame: in which to recognize faces
@@ -127,6 +156,13 @@ public:
      * @note when return true, call GetCurFaceInfo() to check which face(s) been recognized.
      */
     bool RecognizeFace(Mat& frame, size_t frame_index, bool b_redetect = false);
+	/**
+     * @brief QueryRecognizedFace: query recognized face for display
+     * @param recognized_faces: unprocessed faces that have be recognized
+     * @return true: query success, otherwise false
+     * @note when return true, call GetCurFaceInfo() to check which face(s) been recognized.
+     */
+    bool QueryRecognizedFaces(vector<struct recognized_info>& recognized_faces);
     /**
      * @brief GetCurFaceInfo: query current information, check struct face_descriptor for details
      * @return pointer to struct face_descriptor array.
@@ -141,6 +177,7 @@ public:
      */
     void QueryParameters(struct face_parameter* param);
     void ModifyParameters(struct face_parameter* param);
+	
 
 protected:
     // middle-level functions:
@@ -157,7 +194,11 @@ private:
     Mat prev_gray_frame;
     Mat norm_gray_frame;
     vector<Point2f> screen_corners;
-    QString top_folder;
+	#if (USED_IN_QT == 1)
+	QString top_folder;
+	#else
+    CString top_folder;
+	#endif
     CascadeClassifier frontal_face_detector;
     CascadeClassifier profile_face_detector;
     GoodFeaturesToTrackDetector feature_detector;
@@ -194,8 +235,7 @@ protected:
     bool _create_one_norm_face(size_t face_index,
                                Mat& gray_frame,
                                Mat& wholeFace);
-    bool _save_norm_faces();
-    bool _valid_norm_face(Mat& new_face);
+    bool _valid_norm_face(vector<Mat>& old_faces, Mat& new_face);
 
 protected:
     // face recognize:
@@ -206,7 +246,6 @@ protected:
 
 private:
     struct face_descriptor *CurFaceInfo;
-    vector<Mat> NormFaceInfo;
     void _reset_face_info(size_t face_index); // reset CurFaceInfo
     bool _find_free_node(size_t& index);
     size_t _cur_face_count();
@@ -217,7 +256,7 @@ private:
     size_t MIN_KP_COUNT; // minimal keyponits count
     size_t MAX_FACES;
     double SIMILAR_GATE;
-    double TEMP_SIMILAR_GATE; // for creating face templates
+    double LIGHT_TUNING; // for adjust similar compare
     RNG RNG;
     double DESIRED_LEFT_EYE_X;
     double DESIRED_LEFT_EYE_Y;
