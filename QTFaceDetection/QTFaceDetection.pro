@@ -59,3 +59,4 @@ FORMS    += mainwindow.ui \
     dialogParam.ui \
     dialogvideosource.ui
 
+#QMAKE_POST_LINK += $(COPY_DIR) $$quote(xml) $$quote($${DESTDIR})

@@ -90,6 +90,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QShortcut* shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidget);
     connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItem()));
+    shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidgetTemplateFace);
+    connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItemTemplate()));
 
     adjustSize();
 
@@ -132,15 +134,17 @@ void MainWindow::selectMode(QAction *action)
         UseCamera();
         dataContext_.SetMode(TEMPLATE);
         ui->groupBoxVideoRecord->hide();
-        ui->groupBoxFaceTempalte->hide();
+        ui->groupBoxFace->hide();
         ui->groupBoxFaceTemplateControl->show();
+        ui->groupBoxTemplate->show();
         ui->actionVideoSource->setEnabled(false);
     }
     else if (action == ui->faceRecognition)
     {
         dataContext_.SetMode(DETECTION);
         ui->groupBoxVideoRecord->hide();
-        ui->groupBoxFaceTempalte->show();
+        ui->groupBoxFace->show();
+        ui->groupBoxTemplate->hide();
         ui->groupBoxFaceTemplateControl->hide();
         ui->actionVideoSource->setEnabled(true);
     }
@@ -149,7 +153,8 @@ void MainWindow::selectMode(QAction *action)
         UseCamera();
         dataContext_.SetMode(RECORD);
         ui->groupBoxVideoRecord->show();
-        ui->groupBoxFaceTempalte->hide();
+        ui->groupBoxFace->hide();
+        ui->groupBoxTemplate->hide();
         ui->groupBoxFaceTemplateControl->hide();
         ui->actionVideoSource->setEnabled(false);
     }
@@ -185,7 +190,7 @@ void MainWindow::OnTimeout()
     }
     else if (dataContext_.GetMode() == TEMPLATE)
     {
-        if (dataContext_.GetTemplateStatus())
+        //if (dataContext_.GetTemplateStatus())
         {
             // just detect/track face....
             faceDetection_.DetectFace(frame, frame_index_);
@@ -303,42 +308,48 @@ void MainWindow::on_pushButton_2_clicked()
 
 void MainWindow::on_pushButtonStartStopTemplate_clicked()
 {
+    face_parameter param;
+    faceDetection_.QueryParameters(&param);
+
     // when face templates not enough, do below....
-
-    // the first face is unpressed face, when recognize one face, show this face to
-    // tell user who is the recognized face, this face will also be save in face database...
-    Mat face;
-    if(faceTemplates_.empty())
+    if (faceTemplates_.size() < 1 + param._min_temp_faces)
     {
-        // extract one unpressed face:
-        if(faceDetection_.ExtractFace(face))
+        // the first face is unpressed face, when recognize one face, show this face to
+        // tell user who is the recognized face, this face will also be save in face database...
+        Mat face;
+        if(faceTemplates_.empty())
         {
-            // 1. show it in list box:
+            // extract one unpressed face:
+            if(faceDetection_.ExtractFace(face))
+            {
+                // 1. show it in list box:
+                OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
 
+                // 2. save it:
+                faceTemplates_.push_back(face);
+            }
+        }
+        else
+        {
+            // get one normalized face:
+            if((faceDetection_.CreateFaceTemplate(face)))
+            {
+                // 1. display it in listbox:
+                OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
 
-            // 2. save it:
-            faceTemplates_.push_back(face);
+                // 2. save it:
+                faceTemplates_.push_back(face);
+            }
         }
     }
     else
     {
-        // get one normalized face:
-        if((faceDetection_.CreateFaceTemplate(face)))
+        // when face templates enough, do save action as below...
+        if(!faceDetection_.SaveFaceTemplates(faceTemplates_))
         {
-            // 1. display it in listbox:
-
-
-            // 2. save it:
-            faceTemplates_.push_back(face);
+            // pop up message box tell the error!
         }
     }
-
-    // when face templates enough, do save action as below...
-    if(!faceDetection_.SaveFaceTemplates(faceTemplates_))
-    {
-        // pop up message box tell the error!
-    }
-
 
     /*
     dataContext_.SetTemplateStatus(!dataContext_.GetTemplateStatus());
@@ -368,17 +379,13 @@ void MainWindow::on_actionSetParam_triggered()
 
 void MainWindow::deleteItem()
 {
-    if(dataContext_.GetMode() == TEMPLATE)
-    {
-        // delete selected face template....
-        // Attention: remember to update faceTemplates vector!!!
-    }
-    else if(dataContext_.GetMode() == DETECTION)
-    {
-        // delete seletect recognized face...
-        delete ui->listWidget->currentItem();
-        bredetect_ = true;
-    }
+    delete ui->listWidget->currentItem();
+    bredetect_ = true;
+}
+
+void MainWindow::deleteItemTemplate()
+{
+    delete ui->listWidgetTemplateFace->currentItem();
 }
 
 void MainWindow::on_actionVideoSource_triggered()
