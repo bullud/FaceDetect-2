@@ -143,19 +143,19 @@ void MainWindow::selectMode(QAction *action)
     {
         dataContext_.SetMode(DETECTION);
         ui->groupBoxVideoRecord->hide();
-        ui->groupBoxFace->show();
         ui->groupBoxTemplate->hide();
         ui->groupBoxFaceTemplateControl->hide();
+        ui->groupBoxFace->show();
         ui->actionVideoSource->setEnabled(true);
     }
     else if (action == ui->videoRecord)
     {
         UseCamera();
         dataContext_.SetMode(RECORD);
-        ui->groupBoxVideoRecord->show();
         ui->groupBoxFace->hide();
         ui->groupBoxTemplate->hide();
         ui->groupBoxFaceTemplateControl->hide();
+        ui->groupBoxVideoRecord->show();
         ui->actionVideoSource->setEnabled(false);
     }
     else
