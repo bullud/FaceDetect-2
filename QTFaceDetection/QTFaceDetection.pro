@@ -60,3 +60,6 @@ FORMS    += mainwindow.ui \
     dialogvideosource.ui
 
 #QMAKE_POST_LINK += $(COPY_DIR) $$quote(xml) $$quote($${DESTDIR})
+
+RC_ICONS += QTFaceDetection.ico
+

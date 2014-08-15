@@ -24,6 +24,10 @@
   <property name="windowTitle">
    <string>人脸识别系统演示程序</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>QTFaceDetection.ico</normaloff>QTFaceDetection.ico</iconset>
+  </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
