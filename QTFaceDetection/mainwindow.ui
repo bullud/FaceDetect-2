@@ -100,6 +100,12 @@
              <height>100</height>
             </size>
            </property>
+           <property name="flow">
+            <enum>QListView::TopToBottom</enum>
+           </property>
+           <property name="isWrapping" stdset="0">
+            <bool>false</bool>
+           </property>
            <property name="resizeMode">
             <enum>QListView::Adjust</enum>
            </property>
@@ -148,6 +154,18 @@
              <width>100</width>
              <height>100</height>
             </size>
+           </property>
+           <property name="flow">
+            <enum>QListView::TopToBottom</enum>
+           </property>
+           <property name="isWrapping" stdset="0">
+            <bool>false</bool>
+           </property>
+           <property name="resizeMode">
+            <enum>QListView::Adjust</enum>
+           </property>
+           <property name="viewMode">
+            <enum>QListView::IconMode</enum>
            </property>
           </widget>
          </item>
