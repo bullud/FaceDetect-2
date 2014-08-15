@@ -12,8 +12,18 @@ QImage OpenCVUtil::CVImgToQTImg(const cv::Mat &opencvImg)
 {
     if(opencvImg.channels() == 1)
     {
-        // still have problem !!!!
-        return QImage((const uchar*)opencvImg.data, opencvImg.cols, opencvImg.rows, QImage::Format_Mono);
+        static QVector<QRgb>  sColorTable;
+
+        // only create our color table once
+        if ( sColorTable.isEmpty() )
+        {
+           for ( int i = 0; i < 256; ++i )
+              sColorTable.push_back( qRgb( i, i, i ) );
+        }
+
+        QImage image( opencvImg.data, opencvImg.cols, opencvImg.rows, opencvImg.step, QImage::Format_Indexed8 );
+        image.setColorTable( sColorTable );
+        return image;
     }
     else
     {
