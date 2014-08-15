@@ -1,4 +1,4 @@
-#include "opencv2/objdetect/objdetect.hpp"
+﻿#include "opencv2/objdetect/objdetect.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
@@ -68,7 +68,7 @@ cv::Point2f findEyeCorner(cv::Mat region, bool left, bool left2) {
 
   return maxP2;
 }
-cv::Point2f findSubpixelEyeCorner(cv::Mat region, cv::Point maxP) {
+cv::Point2f findSubpixelEyeCorner(cv::Mat region, cv::Point /*maxP*/) {
 
   cv::Size sizeRegion = region.size();
 
@@ -110,6 +110,6 @@ if(left){
   cv::Point maxP2;
   cv::minMaxLoc(cornerMap, NULL,NULL,NULL,&maxP2);
 
-  return cv::Point2f(sizeRegion.width / 2 + maxP2.x / 10,
-                     sizeRegion.height / 2 + maxP2.y / 10);
+  return cv::Point2f(sizeRegion.width / 2.0f + maxP2.x / 10.0f,
+                     sizeRegion.height / 2.0f + maxP2.y / 10.0f);
 }

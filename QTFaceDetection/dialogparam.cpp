@@ -16,6 +16,7 @@ DialogParam::DialogParam(QWidget *parent, FaceDetection *faceDetection) :
     ui->lineEditTpCount->setText(QString::number(param._min_kp_count));
     ui->lineEditMinTempFaces->setText(QString::number(param._min_temp_faces));
     ui->lineEditSimilarGate->setText(QString::number(param._similar_gate));
+    ui->lineEditLight->setText(QString::number(param._light_tuning));
 }
 
 DialogParam::~DialogParam()
@@ -29,7 +30,8 @@ void DialogParam::accept()
         ui->lineEditMaxFaces->text().toInt(),
         ui->lineEditTpCount->text().toInt(),
         ui->lineEditMinTempFaces->text().toInt(),
-        ui->lineEditSimilarGate->text().toDouble()
+        ui->lineEditSimilarGate->text().toDouble(),
+        ui->lineEditLight->text().toDouble()
     };
     faceDetection_->ModifyParameters(&param);
     QDialog::accept();
