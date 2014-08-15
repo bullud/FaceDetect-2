@@ -1,4 +1,4 @@
-﻿#include "opencv2/objdetect/objdetect.hpp"
+#include "opencv2/objdetect/objdetect.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
@@ -14,6 +14,7 @@
 // Pre-declarations
 cv::Mat floodKillEdges(cv::Mat &mat);
 
+#pragma mark Visualization
 /*
 template<typename T> mglData *matToData(const cv::Mat &mat) {
   mglData *data = new mglData(mat.cols,mat.rows);
@@ -41,6 +42,7 @@ void plotVecField(const cv::Mat &gradientX, const cv::Mat &gradientY, const cv::
   delete imgData;
 }*/
 
+#pragma mark Helpers
 
 cv::Point unscalePoint(cv::Point p, cv::Rect origSize) {
   float ratio = (((float)kFastEyeWidth)/origSize.width);
@@ -50,7 +52,7 @@ cv::Point unscalePoint(cv::Point p, cv::Rect origSize) {
 }
 
 void scaleToFastSize(const cv::Mat &src,cv::Mat &dst) {
-  cv::resize(src, dst, cv::Size(kFastEyeWidth,(int)(((float)kFastEyeWidth)/src.cols) * src.rows));
+  cv::resize(src, dst, cv::Size(kFastEyeWidth,(((float)kFastEyeWidth)/src.cols) * src.rows));
 }
 
 cv::Mat computeMatXGradient(const cv::Mat &mat) {
@@ -69,6 +71,8 @@ cv::Mat computeMatXGradient(const cv::Mat &mat) {
   
   return out;
 }
+
+#pragma mark Main Algorithm
 
 void testPossibleCentersFormula(int x, int y, unsigned char weight,double gx, double gy, cv::Mat &out) {
   // for all possible centers
@@ -182,6 +186,8 @@ cv::Point findEyeCenter(cv::Mat face, cv::Rect eye, std::string debugWindow) {
   }
   return unscalePoint(maxP,eye);
 }
+
+#pragma mark Postprocessing
 
 bool floodShouldPushPoint(const cv::Point &np, const cv::Mat &mat) {
   return inMat(np, mat.rows, mat.cols);

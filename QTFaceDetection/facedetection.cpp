@@ -2,7 +2,7 @@
 
 // just for debug, to be removed later......
 #undef DEBUG_MSG
-#define DEBUG_MSG       1
+#define DEBUG_MSG       0
 #if (DEBUG_MSG == 1)
 #include <iostream>
 using std::cout;
@@ -1163,13 +1163,15 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
         //cout << "Glasses eye size = " << EyeRect.size() << endl;
         if(!_really_eyes(EyeRect, face_rect, CurFaceInfo[face_index]._old_corners))
         {
-            #if(DEBUG_MSG == 1)
+            #if (DEBUG_MSG == 1)
             cout << "Error: not really eyes detected." << endl;
             #endif
 			CurFaceInfo[face_index]._invalid_number++;
 			if(CurFaceInfo[face_index]._invalid_number >= 3) // when 3 times not extract eyes, we re-detect....
 			{
+                #if (DEBUG_MSG == 1)
 				cout << "re-detect occur..." << endl;
+                #endif
 				_reset_face_info(face_index);
 			}
             return false;
@@ -1225,14 +1227,17 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
     SET_MAX(EyeRect[idx1].height, (face_image.rows - EyeRect[idx1].y));
     if(_rect_overlap(EyeRect[idx0], EyeRect[idx1], (eye_region_width/2.1 + eye_region_height/2.1)/2.0))
     {
-        rectangle(show_face, EyeRect[idx0], Scalar(255), 1, 8, 0);
-        rectangle(show_face, EyeRect[idx1], Scalar(255), 1, 8, 0);
+        //rectangle(show_face, EyeRect[idx0], Scalar(255), 1, 8, 0);
+        //rectangle(show_face, EyeRect[idx1], Scalar(255), 1, 8, 0);
         //imshow("eye1", show_face);
         #if (DEBUG_MSG == 1)
         cout << "Error: two eyes too close." << endl;
         #endif
         return false;
     }
+    //rectangle(show_face, EyeRect[idx0], Scalar(255), 1, 8, 0);
+    //rectangle(show_face, EyeRect[idx1], Scalar(255), 1, 8, 0);
+    //imshow("eye1", show_face);
     Point leftPupil = findEyeCenter(face_image.clone(), EyeRect[idx0], "Left Eye");
     Point rightPupil = findEyeCenter(face_image.clone(), EyeRect[idx1], "Right Eye");
     // coordinate converting:
@@ -1425,7 +1430,7 @@ bool FaceDetection::_init_face_recognizer()
         return false;
     }
     #if (DEBUG_MSG == 1)
-    cout << "faces for recognize = " << faces.size() << endl;
+    cout << "faces for recognization = " << faces.size() << endl;
     #endif
 
     // init module:
