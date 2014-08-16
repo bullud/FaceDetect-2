@@ -386,7 +386,7 @@ void MainWindow::deleteItem()
 void MainWindow::deleteItemTemplate()
 {
     auto currentItem = ui->listWidgetTemplateFace->currentItem();
-    int index = currentItem->data(Qt::UserRole).toInt();
+    auto index = ui->listWidgetTemplateFace->currentRow();
     faceTemplates_.erase(faceTemplates_.begin() + index);
     delete currentItem;
 }
