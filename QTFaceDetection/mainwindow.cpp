@@ -356,7 +356,7 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
         }
 
         ui->listWidgetTemplateFace->clear();
-        faceTemplates_.erase(faceTemplates_.begin(), faceTemplates_.end());
+        faceTemplates_.clear();
         QMessageBox::information(
             this,
             QStringLiteral("成功"),
