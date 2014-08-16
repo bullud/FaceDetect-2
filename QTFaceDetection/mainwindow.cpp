@@ -347,8 +347,22 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
         // when face templates enough, do save action as below...
         if(!faceDetection_.SaveFaceTemplates(faceTemplates_))
         {
-            // pop up message box tell the error!
+            QMessageBox::critical(
+                this,
+                QStringLiteral("错误"),
+                QStringLiteral("写入模板文件"),
+                QMessageBox::Yes,
+                QMessageBox::Yes);
         }
+
+        ui->listWidgetTemplateFace->clear();
+        faceTemplates_.erase(faceTemplates_.begin(), faceTemplates_.end());
+        QMessageBox::information(
+            this,
+            QStringLiteral("成功"),
+            QStringLiteral("成功写入模板文件"),
+            QMessageBox::Yes,
+            QMessageBox::Yes);
     }
 
     /*
