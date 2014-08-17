@@ -96,7 +96,7 @@ MainWindow::MainWindow(QWidget *parent) :
     adjustSize();
 
     connect(&timer_, SIGNAL(timeout()), this, SLOT(OnTimeout()));
-    timer_.start(50);
+    timer_.start(25);
 }
 
 MainWindow::~MainWindow()
@@ -322,11 +322,11 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
             // extract one unpressed face:
             if(faceDetection_.ExtractFace(face))
             {
-                // 1. show it in list box:
-                OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
+                // 1. save it:
+                faceTemplates_.push_back(face.clone());
 
-                // 2. save it:
-                faceTemplates_.push_back(face);
+                // 2. show it in list box:
+                OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
             }
         }
         else
@@ -334,11 +334,11 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
             // get one normalized face:
             if((faceDetection_.CreateFaceTemplate(face)))
             {
-                // 1. display it in listbox:
-                OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
-
-                // 2. save it:
+                // 1. save it:
                 faceTemplates_.push_back(face);
+
+                // 2. display it in listbox:
+                OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
             }
         }
     }
