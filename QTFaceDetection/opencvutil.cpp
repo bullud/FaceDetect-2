@@ -47,7 +47,9 @@ void OpenCVUtil::AddFaceItem(QListWidget *listBox, const cv::Mat &face, int id)
 
     if (faceIds.end() == find(faceIds.begin(), faceIds.end(), id))
     {
-        listBox->addItem(CreateFaceItem(face, id));
+        auto item = CreateFaceItem(face, id);
+        listBox->addItem(item);
+        listBox->setCurrentItem(item);
         faceIds.push_back(id);
     }
 }

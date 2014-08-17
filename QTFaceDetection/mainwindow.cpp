@@ -19,7 +19,8 @@ MainWindow::MainWindow(QWidget *parent) :
     actionGroup(new QActionGroup(this)),
     videoWriter_(nullptr),
     frame_index_(0),
-    bredetect_(false)
+    bredetect_(false),
+    statusBarMessage(new QLabel())
 {
     ui->setupUi(this);
     layout()->setSizeConstraint(QLayout::SetFixedSize);
@@ -93,6 +94,8 @@ MainWindow::MainWindow(QWidget *parent) :
     shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidgetTemplateFace);
     connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItemTemplate()));
 
+    ui->statusBar->addPermanentWidget(statusBarMessage);
+
     adjustSize();
 
     connect(&timer_, SIGNAL(timeout()), this, SLOT(OnTimeout()));
@@ -138,6 +141,7 @@ void MainWindow::selectMode(QAction *action)
         ui->groupBoxFaceTemplateControl->show();
         ui->groupBoxTemplate->show();
         ui->actionVideoSource->setEnabled(false);
+        statusBarMessage->setText(QStringLiteral("当前模式： 人脸建模"));
     }
     else if (action == ui->faceRecognition)
     {
@@ -147,6 +151,8 @@ void MainWindow::selectMode(QAction *action)
         ui->groupBoxFaceTemplateControl->hide();
         ui->groupBoxFace->show();
         ui->actionVideoSource->setEnabled(true);
+        QString msg = QStringLiteral("当前模式： 人脸识别");
+        statusBarMessage->setText(msg);
     }
     else if (action == ui->videoRecord)
     {
@@ -157,6 +163,7 @@ void MainWindow::selectMode(QAction *action)
         ui->groupBoxFaceTemplateControl->hide();
         ui->groupBoxVideoRecord->show();
         ui->actionVideoSource->setEnabled(false);
+        statusBarMessage->setText(QStringLiteral("当前模式： 视频录制"));
     }
     else
         assert(0);
@@ -347,8 +354,22 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
         // when face templates enough, do save action as below...
         if(!faceDetection_.SaveFaceTemplates(faceTemplates_))
         {
-            // pop up message box tell the error!
+            QMessageBox::critical(
+                this,
+                QStringLiteral("错误"),
+                QStringLiteral("写入模板文件"),
+                QMessageBox::Yes,
+                QMessageBox::Yes);
         }
+
+        ui->listWidgetTemplateFace->clear();
+        faceTemplates_.clear();
+        QMessageBox::information(
+            this,
+            QStringLiteral("成功"),
+            QStringLiteral("成功写入模板文件"),
+            QMessageBox::Yes,
+            QMessageBox::Yes);
     }
 
     /*
@@ -386,7 +407,7 @@ void MainWindow::deleteItem()
 void MainWindow::deleteItemTemplate()
 {
     auto currentItem = ui->listWidgetTemplateFace->currentItem();
-    int index = currentItem->data(Qt::UserRole).toInt();
+    auto index = ui->listWidgetTemplateFace->currentRow();
     faceTemplates_.erase(faceTemplates_.begin() + index);
     delete currentItem;
 }
@@ -401,8 +422,7 @@ void MainWindow::UseCamera()
 {
     if (dataContext_.GetSource() == CAMERA) return;
 
-    std::unique_ptr<cv::VideoCapture> newSource(
-        new cv::VideoCapture(0));
+    std::unique_ptr<cv::VideoCapture> newSource(new cv::VideoCapture(0));
     capture_.swap(newSource);
     dataContext_.SetSource(CAMERA);
 }

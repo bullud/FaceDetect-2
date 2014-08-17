@@ -7,6 +7,7 @@
 #include <QMainWindow>
 #include <QActionGroup>
 #include <QTimer>
+#include <QLabel>
 
 #include <opencv2/highgui/highgui.hpp>
 
@@ -37,6 +38,7 @@ private:
     bool bredetect_;
     cv::VideoWriter *videoWriter_;
     std::vector<Mat> faceTemplates_; // contain the selected face templates, which is to be send to FaceDetection::SaveFaceTemplates()
+    QLabel *statusBarMessage;
 
 private:
     void UseCamera();

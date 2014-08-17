@@ -374,6 +374,13 @@
    <addaction name="menuSettings"/>
    <addaction name="menuHelp"/>
   </widget>
+  <widget class="QStatusBar" name="statusBar">
+   <property name="font">
+    <font>
+     <family>微软雅黑</family>
+    </font>
+   </property>
+  </widget>
   <action name="menuFileExit">
    <property name="text">
     <string>退出</string>
