@@ -3,6 +3,7 @@
 #include "opencvutil.h"
 #include "dialogparam.h"
 #include "dialogvideosource.h"
+#include "dialogabout.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QShortcut>
@@ -425,4 +426,10 @@ void MainWindow::UseCamera()
     std::unique_ptr<cv::VideoCapture> newSource(new cv::VideoCapture(0));
     capture_.swap(newSource);
     dataContext_.SetSource(CAMERA);
+}
+
+void MainWindow::on_actionAbout_triggered()
+{
+    DialogAbout dialog(this);
+    dialog.exec();
 }

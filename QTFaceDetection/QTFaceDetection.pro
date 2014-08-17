@@ -42,7 +42,8 @@ SOURCES += main.cpp \
     source_lib/findEyeCorner.cpp \
     source_lib/helpers.cpp \
     dialogparam.cpp \
-    dialogvideosource.cpp
+    dialogvideosource.cpp \
+    dialogabout.cpp
 
 HEADERS  += mainwindow.h \
     datacontext.h \
@@ -53,13 +54,18 @@ HEADERS  += mainwindow.h \
     source_lib/findEyeCorner.h \
     source_lib/helpers.h \
     dialogparam.h \
-    dialogvideosource.h
+    dialogvideosource.h \
+    dialogabout.h
 
 FORMS    += mainwindow.ui \
     dialogParam.ui \
-    dialogvideosource.ui
+    dialogvideosource.ui \
+    dialogabout.ui
 
 #QMAKE_POST_LINK += $(COPY_DIR) $$quote(xml) $$quote($${DESTDIR})
 
 RC_ICONS += QTFaceDetection.ico
+
+RESOURCES += \
+    QTFaceDetection.qrc
 

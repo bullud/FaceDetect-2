@@ -54,6 +54,7 @@ private slots:
     void deleteItem();
     void deleteItemTemplate();
     void on_actionVideoSource_triggered();
+    void on_actionAbout_triggered();
 };
 
 #endif // MAINWINDOW_H

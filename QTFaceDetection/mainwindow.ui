@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1088</width>
-    <height>725</height>
+    <height>746</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -359,7 +359,7 @@
     <property name="title">
      <string>帮助</string>
     </property>
-    <addaction name="action_4"/>
+    <addaction name="actionAbout"/>
    </widget>
    <widget class="QMenu" name="menuFeatures">
     <property name="title">
@@ -411,7 +411,7 @@
     </font>
    </property>
   </action>
-  <action name="action_4">
+  <action name="actionAbout">
    <property name="text">
     <string>关于</string>
    </property>
