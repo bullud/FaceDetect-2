@@ -96,8 +96,8 @@ struct face_parameter{
 #define DEF_MAX_FACES               (5)
 #define DEF_MIN_KP_COUNT            (16)
 #define DEF_MIN_TEMP_FACES          (10)
-#define DEF_SIMILAR_GATE            (0.3)
-#define DEF_LIGHT_TUNING			(100.0)
+#define DEF_SIMILAR_GATE            (0.25)
+#define DEF_LIGHT_TUNING			(0.0)
 
 class FaceDetection
 {
