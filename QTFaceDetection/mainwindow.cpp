@@ -66,17 +66,6 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->pushButton_2->setText(QStringLiteral("开始录像"));
     }
 
-    if (dataContext_.GetTemplateStatus())
-    {
-        ui->pushButtonStartStopTemplate->setText(QStringLiteral("停止建模"));
-    }
-    else
-    {
-        ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
-    }
-
-    ui->progressBarFaceTemplate->hide();
-
     frame_index_ = 0;
     cv::Size screen_size(capture_->get(CV_CAP_PROP_FRAME_WIDTH), capture_->get(CV_CAP_PROP_FRAME_HEIGHT));
     if(!faceDetection_.Initialize(screen_size, QString("./face_database")))
@@ -319,78 +308,36 @@ void MainWindow::on_pushButtonStartStopTemplate_clicked()
     face_parameter param;
     faceDetection_.QueryParameters(&param);
 
-    // when face templates not enough, do below....
-    if (faceTemplates_.size() < 1 + param._min_temp_faces)
+    // the first face is unpressed face, when recognize one face, show this face to
+    // tell user who is the recognized face, this face will also be save in face database...
+    Mat face;
+    if(faceTemplates_.empty())
     {
-        // the first face is unpressed face, when recognize one face, show this face to
-        // tell user who is the recognized face, this face will also be save in face database...
-        Mat face;
-        if(faceTemplates_.empty())
+        // extract one unpressed face:
+        if(faceDetection_.ExtractFace(face))
         {
-            // extract one unpressed face:
-            if(faceDetection_.ExtractFace(face))
-            {
-                // 1. save it:
-                faceTemplates_.push_back(face.clone());
+            // 1. save it:
+            faceTemplates_.push_back(face.clone());
 
-                // 2. show it in list box:
-                OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
-            }
-        }
-        else
-        {
-            // get one normalized face:
-            if((faceDetection_.CreateFaceTemplate(face)))
-            {
-                // 1. save it:
-                faceTemplates_.push_back(face);
-
-                // 2. display it in listbox:
-                OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
-            }
+            // 2. show it in list box:
+            OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
         }
     }
     else
     {
-        // when face templates enough, do save action as below...
-        if(!faceDetection_.SaveFaceTemplates(faceTemplates_))
+        // get one normalized face:
+        if((faceDetection_.CreateFaceTemplate(face)))
         {
-            QMessageBox::critical(
-                this,
-                QStringLiteral("错误"),
-                QStringLiteral("写入模板文件"),
-                QMessageBox::Yes,
-                QMessageBox::Yes);
+            // 1. save it:
+            faceTemplates_.push_back(face);
+
+            // 2. display it in listbox:
+            OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
         }
-
-        ui->listWidgetTemplateFace->clear();
-        faceTemplates_.clear();
-        QMessageBox::information(
-            this,
-            QStringLiteral("成功"),
-            QStringLiteral("成功写入模板文件"),
-            QMessageBox::Yes,
-            QMessageBox::Yes);
     }
 
-    /*
-    dataContext_.SetTemplateStatus(!dataContext_.GetTemplateStatus());
-
-    if (dataContext_.GetTemplateStatus())
-    {
-        bfirst_ = true;
-        ui->pushButtonStartStopTemplate->setText(QStringLiteral("停止建模"));
-        ui->progressBarFaceTemplate->setValue(0);
-        ui->progressBarFaceTemplate->show();
-    }
-    else
-    {
-        ui->pushButtonStartStopTemplate->setText(QStringLiteral("开始建模"));
-        ui->progressBarFaceTemplate->hide();
-    }
-    */
-
-    adjustSize();
+    if (faceTemplates_.size() > param._min_temp_faces)
+        ui->pushButtonSaveTemplate->setEnabled(true);
 }
 
 void MainWindow::on_actionSetParam_triggered()
@@ -403,14 +350,6 @@ void MainWindow::deleteItem()
 {
     delete ui->listWidget->currentItem();
     bredetect_ = true;
-}
-
-void MainWindow::deleteItemTemplate()
-{
-    auto currentItem = ui->listWidgetTemplateFace->currentItem();
-    auto index = ui->listWidgetTemplateFace->currentRow();
-    faceTemplates_.erase(faceTemplates_.begin() + index);
-    delete currentItem;
 }
 
 void MainWindow::on_actionVideoSource_triggered()
@@ -432,4 +371,40 @@ void MainWindow::on_actionAbout_triggered()
 {
     DialogAbout dialog(this);
     dialog.exec();
+}
+
+void MainWindow::on_pushButtonDeleteTemplate_clicked()
+{
+    if (faceTemplates_.size() == 0) return;
+    faceTemplates_.pop_back();
+    delete ui->listWidgetTemplateFace->item(faceTemplates_.size());
+
+    face_parameter param;
+    faceDetection_.QueryParameters(&param);
+    if (faceTemplates_.size() <= param._min_temp_faces)
+        ui->pushButtonSaveTemplate->setEnabled(false);
+}
+
+void MainWindow::on_pushButtonSaveTemplate_clicked()
+{
+    // when face templates enough, do save action as below...
+    if(!faceDetection_.SaveFaceTemplates(faceTemplates_))
+    {
+        QMessageBox::critical(
+            this,
+            QStringLiteral("错误"),
+            QStringLiteral("写入模板文件失败"),
+            QMessageBox::Yes,
+            QMessageBox::Yes);
+        return;
+    }
+
+    ui->listWidgetTemplateFace->clear();
+    faceTemplates_.clear();
+    QMessageBox::information(
+        this,
+        QStringLiteral("成功"),
+        QStringLiteral("成功写入模板文件"),
+        QMessageBox::Yes,
+        QMessageBox::Yes);
 }

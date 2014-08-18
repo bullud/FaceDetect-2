@@ -52,9 +52,10 @@ private slots:
     void on_pushButtonStartStopTemplate_clicked();
     void on_actionSetParam_triggered();
     void deleteItem();
-    void deleteItemTemplate();
     void on_actionVideoSource_triggered();
     void on_actionAbout_triggered();
+    void on_pushButtonDeleteTemplate_clicked();
+    void on_pushButtonSaveTemplate_clicked();
 };
 
 #endif // MAINWINDOW_H
