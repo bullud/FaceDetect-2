@@ -22,7 +22,6 @@
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenu>
 #include <QtWidgets/QMenuBar>
-#include <QtWidgets/QProgressBar>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
 #include <QtWidgets/QStatusBar>
@@ -37,7 +36,7 @@ public:
     QAction *menuFileExit;
     QAction *actionVideoSource;
     QAction *actionSetParam;
-    QAction *action_4;
+    QAction *actionAbout;
     QAction *faceTemplate;
     QAction *faceRecognition;
     QAction *videoRecord;
@@ -64,11 +63,11 @@ public:
     QSpacerItem *horizontalSpacer_2;
     QGroupBox *groupBoxFaceTemplateControl;
     QHBoxLayout *horizontalLayout_7;
-    QVBoxLayout *verticalLayout_4;
-    QProgressBar *progressBarFaceTemplate;
     QHBoxLayout *horizontalLayout_6;
     QSpacerItem *horizontalSpacer_3;
     QPushButton *pushButtonStartStopTemplate;
+    QPushButton *pushButtonDeleteTemplate;
+    QPushButton *pushButtonSaveTemplate;
     QSpacerItem *horizontalSpacer_4;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -81,7 +80,7 @@ public:
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QStringLiteral("MainWindow"));
-        MainWindow->resize(1088, 725);
+        MainWindow->resize(952, 715);
         QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         sizePolicy.setHorizontalStretch(0);
         sizePolicy.setVerticalStretch(0);
@@ -102,9 +101,9 @@ public:
         actionSetParam = new QAction(MainWindow);
         actionSetParam->setObjectName(QStringLiteral("actionSetParam"));
         actionSetParam->setFont(font);
-        action_4 = new QAction(MainWindow);
-        action_4->setObjectName(QStringLiteral("action_4"));
-        action_4->setFont(font);
+        actionAbout = new QAction(MainWindow);
+        actionAbout->setObjectName(QStringLiteral("actionAbout"));
+        actionAbout->setFont(font);
         faceTemplate = new QAction(MainWindow);
         faceTemplate->setObjectName(QStringLiteral("faceTemplate"));
         faceTemplate->setCheckable(true);
@@ -270,21 +269,10 @@ public:
         horizontalLayout_7->setSpacing(6);
         horizontalLayout_7->setContentsMargins(11, 11, 11, 11);
         horizontalLayout_7->setObjectName(QStringLiteral("horizontalLayout_7"));
-        verticalLayout_4 = new QVBoxLayout();
-        verticalLayout_4->setSpacing(6);
-        verticalLayout_4->setObjectName(QStringLiteral("verticalLayout_4"));
-        progressBarFaceTemplate = new QProgressBar(groupBoxFaceTemplateControl);
-        progressBarFaceTemplate->setObjectName(QStringLiteral("progressBarFaceTemplate"));
-        sizePolicy4.setHeightForWidth(progressBarFaceTemplate->sizePolicy().hasHeightForWidth());
-        progressBarFaceTemplate->setSizePolicy(sizePolicy4);
-        progressBarFaceTemplate->setValue(0);
-
-        verticalLayout_4->addWidget(progressBarFaceTemplate);
-
         horizontalLayout_6 = new QHBoxLayout();
         horizontalLayout_6->setSpacing(6);
         horizontalLayout_6->setObjectName(QStringLiteral("horizontalLayout_6"));
-        horizontalSpacer_3 = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalSpacer_3 = new QSpacerItem(13, 13, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         horizontalLayout_6->addItem(horizontalSpacer_3);
 
@@ -293,15 +281,23 @@ public:
 
         horizontalLayout_6->addWidget(pushButtonStartStopTemplate);
 
-        horizontalSpacer_4 = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        pushButtonDeleteTemplate = new QPushButton(groupBoxFaceTemplateControl);
+        pushButtonDeleteTemplate->setObjectName(QStringLiteral("pushButtonDeleteTemplate"));
+
+        horizontalLayout_6->addWidget(pushButtonDeleteTemplate);
+
+        pushButtonSaveTemplate = new QPushButton(groupBoxFaceTemplateControl);
+        pushButtonSaveTemplate->setObjectName(QStringLiteral("pushButtonSaveTemplate"));
+        pushButtonSaveTemplate->setEnabled(false);
+
+        horizontalLayout_6->addWidget(pushButtonSaveTemplate);
+
+        horizontalSpacer_4 = new QSpacerItem(13, 13, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         horizontalLayout_6->addItem(horizontalSpacer_4);
 
 
-        verticalLayout_4->addLayout(horizontalLayout_6);
-
-
-        horizontalLayout_7->addLayout(verticalLayout_4);
+        horizontalLayout_7->addLayout(horizontalLayout_6);
 
 
         verticalLayout_2->addWidget(groupBoxFaceTemplateControl);
@@ -309,7 +305,7 @@ public:
         MainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(MainWindow);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 1088, 23));
+        menuBar->setGeometry(QRect(0, 0, 952, 23));
         menuBar->setFont(font);
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
@@ -332,7 +328,7 @@ public:
         menuFile->addAction(menuFileExit);
         menuSettings->addAction(actionVideoSource);
         menuSettings->addAction(actionSetParam);
-        menuHelp->addAction(action_4);
+        menuHelp->addAction(actionAbout);
         menuFeatures->addAction(faceTemplate);
         menuFeatures->addAction(faceRecognition);
         menuFeatures->addAction(videoRecord);
@@ -348,7 +344,7 @@ public:
         menuFileExit->setText(QApplication::translate("MainWindow", "\351\200\200\345\207\272", 0));
         actionVideoSource->setText(QApplication::translate("MainWindow", "\350\247\206\351\242\221\346\272\220", 0));
         actionSetParam->setText(QApplication::translate("MainWindow", "\345\217\202\346\225\260", 0));
-        action_4->setText(QApplication::translate("MainWindow", "\345\205\263\344\272\216", 0));
+        actionAbout->setText(QApplication::translate("MainWindow", "\345\205\263\344\272\216", 0));
         faceTemplate->setText(QApplication::translate("MainWindow", "\344\272\272\350\204\270\345\273\272\346\250\241", 0));
         faceRecognition->setText(QApplication::translate("MainWindow", "\344\272\272\350\204\270\350\257\206\345\210\253", 0));
         videoRecord->setText(QApplication::translate("MainWindow", "\350\247\206\351\242\221\345\275\225\345\210\266", 0));
@@ -360,7 +356,9 @@ public:
         pushButton->setText(QApplication::translate("MainWindow", "\346\226\207\344\273\266...", 0));
         pushButton_2->setText(QString());
         groupBoxFaceTemplateControl->setTitle(QApplication::translate("MainWindow", "\344\272\272\350\204\270\345\273\272\346\250\241", 0));
-        pushButtonStartStopTemplate->setText(QString());
+        pushButtonStartStopTemplate->setText(QApplication::translate("MainWindow", "\345\273\272\346\250\241", 0));
+        pushButtonDeleteTemplate->setText(QApplication::translate("MainWindow", "\345\210\240\351\231\244", 0));
+        pushButtonSaveTemplate->setText(QApplication::translate("MainWindow", "\344\277\235\345\255\230", 0));
         menuFile->setTitle(QApplication::translate("MainWindow", "\346\226\207\344\273\266", 0));
         menuSettings->setTitle(QApplication::translate("MainWindow", "\350\256\276\347\275\256", 0));
         menuHelp->setTitle(QApplication::translate("MainWindow", "\345\270\256\345\212\251", 0));

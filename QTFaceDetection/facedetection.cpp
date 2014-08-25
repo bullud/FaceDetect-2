@@ -2,7 +2,7 @@
 
 // just for debug, to be removed later......
 #undef DEBUG_MSG
-#define DEBUG_MSG       1
+#define DEBUG_MSG       0
 #if (DEBUG_MSG == 1)
 #include <iostream>
 using std::cout;
@@ -1172,7 +1172,9 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
 			CurFaceInfo[face_index]._invalid_number++;
 			if(CurFaceInfo[face_index]._invalid_number >= 3) // when 3 times not extract eyes, we re-detect....
 			{
+                #if(DEBUG_MSG == 1)
 				cout << "re-detect occur..." << endl;
+                #endif
 				_reset_face_info(face_index);
 			}
             return false;

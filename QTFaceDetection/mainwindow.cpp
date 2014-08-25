@@ -89,7 +89,7 @@ MainWindow::MainWindow(QWidget *parent) :
     adjustSize();
 
     connect(&timer_, SIGNAL(timeout()), this, SLOT(OnTimeout()));
-    timer_.start(25);
+    timer_.start(50);
 }
 
 MainWindow::~MainWindow()
@@ -181,6 +181,10 @@ void MainWindow::OnTimeout()
                 for(size_t i=0; i<recognized_faces.size(); ++i)
                     OpenCVUtil::AddFaceItem(ui->listWidget, recognized_faces[i]._image, recognized_faces[i]._label);
             }
+        }
+        else
+        {
+            ui->listWidget->clear();
         }
         // we no need re-detect in default...
         bredetect_ = false;
