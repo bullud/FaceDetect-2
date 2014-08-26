@@ -1,4 +1,4 @@
-#ifndef FACEDETECTION_H
+﻿#ifndef FACEDETECTION_H
 #define FACEDETECTION_H
 
 /** 
@@ -178,6 +178,9 @@ public:
     void QueryParameters(struct face_parameter* param);
     void ModifyParameters(struct face_parameter* param);
 	
+    int GetFaceTemplateCount() const;
+    vector<Mat> GetFaceTemplates(int index) const;
+    void SaveFaceTemplates(int index, const vector<Mat> &templates);
 
 protected:
     // middle-level functions:
