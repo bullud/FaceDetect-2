@@ -1,4 +1,4 @@
-﻿#ifndef FACEDETECTION_H
+#ifndef FACEDETECTION_H
 #define FACEDETECTION_H
 
 /** 
@@ -96,7 +96,7 @@ struct face_parameter{
 #define DEF_MAX_FACES               (5)
 #define DEF_MIN_KP_COUNT            (16)
 #define DEF_MIN_TEMP_FACES          (10)
-#define DEF_SIMILAR_GATE            (0.25)
+#define DEF_SIMILAR_GATE            (0.23)
 #define DEF_LIGHT_TUNING			(0.0)
 
 class FaceDetection
@@ -147,7 +147,7 @@ public:
      * @param face_templates: multi face templates array
      * @return true: face templates saved success, otherwise false.
      */
-    bool SaveFaceTemplates(vector<Mat>& face_templates);
+    bool SaveFaceTemplates(vector<Mat>& face_templates, int index = -1);
     /**
      * @brief RecognizeFace: recognize faces in frame
      * @param frame: in which to recognize faces
@@ -177,10 +177,18 @@ public:
      */
     void QueryParameters(struct face_parameter* param);
     void ModifyParameters(struct face_parameter* param);
-	
-    int GetFaceTemplateCount() const;
-    vector<Mat> GetFaceTemplates(int index) const;
-    void SaveFaceTemplates(int index, const vector<Mat> &templates);
+	/**
+     * @brief GetFaceTemplateCount: query how many templates exist
+     * @param none
+     * @return templates quantity
+     */
+	int GetFaceTemplateCount() const;
+	/**
+     * @brief GetFaceTemplates: Query one set of template faces appointed by index
+     * @param index: the index of target template, based on 1, not 0
+     * @return template faces
+     */
+	vector<Mat> GetFaceTemplates(int index) const;
 
 protected:
     // middle-level functions:

@@ -2,7 +2,7 @@
 
 // just for debug, to be removed later......
 #undef DEBUG_MSG
-#define DEBUG_MSG       0
+#define DEBUG_MSG       1
 #if (DEBUG_MSG == 1)
 #include <iostream>
 using std::cout;
@@ -32,6 +32,15 @@ static bool _file_exist(const CString& file_path)
 {
 	WIN32_FIND_DATA wfd; 
 	if(FindFirstFile(file_path, &wfd) != INVALID_HANDLE_VALUE && !(wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))  
+	{  
+		return true;
+	}  
+	return false;
+}
+static bool _directory_exist(const CString& dir_path)
+{
+	WIN32_FIND_DATA wfd; 
+	if(FindFirstFile(dir_path, &wfd) != INVALID_HANDLE_VALUE && (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))  
 	{  
 		return true;
 	}  
@@ -284,68 +293,126 @@ bool FaceDetection::ExtractFace(Mat& face)
 	return true;
 }
 
-bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates)
+bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates, int index /* = -1 */)
 {
-	#if (USED_IN_QT == 1)
-	QString sub_folder, file_name;
-	#else
-	CString sub_folder, file_name;
-	#endif
-
-	#if (DEBUG_MSG == 1)
-	cout << "save captured normalized faces into file..." << endl;
-	#endif
-	int lib_index = 1;
-
-	if(face_templates.size() <= 1)
-		return false;
-
-	// create top folder:
-	#if (USED_IN_QT == 1)
-	QDir t;
-	while(1)
+	if(index == -1)
 	{
-		sub_folder.sprintf("%s/s%d", top_folder.toStdString().c_str(), lib_index);
-		if(t.exists(sub_folder))
+		// add face_templates to the tail...
+		#if (USED_IN_QT == 1)
+		QString sub_folder, file_name;
+		#else
+		CString sub_folder, file_name;
+		#endif
+
+		#if (DEBUG_MSG == 1)
+		cout << "save captured normalized faces into file..." << endl;
+		#endif
+		int lib_index = 1;
+
+		if(face_templates.size() <= 1)
+			return false;
+
+		// create top folder:
+		#if (USED_IN_QT == 1)
+		QDir t;
+		while(1)
 		{
+			sub_folder.sprintf("%s/s%d", top_folder.toStdString().c_str(), lib_index);
+			if(t.exists(sub_folder))
+			{
+				lib_index++;
+			}
+			else
+			{
+				if(t.mkdir(sub_folder))
+					break;
+				else
+					return false;
+			}
+		}
+		// save unprocessed face:
+		file_name.sprintf("%s/show.pgm", sub_folder.toStdString().c_str());
+		cv::imwrite(file_name.toStdString(), face_templates[0]);
+		// save normalized faces:
+		for(size_t i=1; i<face_templates.size(); ++i)
+		{
+			file_name.sprintf("%s/%d.pgm", sub_folder.toStdString().c_str(), i);
+			cv::imwrite(file_name.toStdString(), face_templates[i]);
+		}
+		#else // #if (USED_IN_QT == 1)
+		USES_CONVERSION;
+		while(1)
+		{
+			sub_folder.Format(_T("%s/s%d"), top_folder, lib_index);
+			if(_create_directory(sub_folder))
+				break;
 			lib_index++;
 		}
-		else
+		// save unprocessed face:
+		file_name.Format(_T("%s/show.pgm"), sub_folder);
+		cv::imwrite(W2A(file_name), face_templates[0]);
+		// save normalized faces:
+		for(size_t i=1; i<face_templates.size(); ++i)
 		{
-			if(t.mkdir(sub_folder))
-				break;
-			else
-				return false;
+			file_name.Format(_T("%s/%d.pgm"), sub_folder, i);
+			cv::imwrite(W2A(file_name), face_templates[i]);
 		}
+		#endif
 	}
-	// save unprocessed face:
-	file_name.sprintf("%s/show.pgm", sub_folder.toStdString().c_str());
-	cv::imwrite(file_name.toStdString(), face_templates[0]);
-	// save normalized faces:
-	for(size_t i=1; i<face_templates.size(); ++i)
+	else // modify current templates, not add new templates...
 	{
-		file_name.sprintf("%s/%d.pgm", sub_folder.toStdString().c_str(), i);
-		cv::imwrite(file_name.toStdString(), face_templates[i]);
+		// add templates appointed by index...
+		#if (USED_IN_QT == 1)
+		QString sub_folder, file_name;
+		#else
+		CString sub_folder, file_name;
+		#endif
+
+		#if (DEBUG_MSG == 1)
+		cout << "save modified normalized faces into file..." << endl;
+		#endif
+
+		// create top folder:
+		#if (USED_IN_QT == 1)
+		QDir t;
+        sub_folder.sprintf("%s/s%d", top_folder.toStdString().c_str(), index);
+		if(!t.exists(sub_folder))
+		{	
+			#if (DEBUG_MSG == 1)
+			cout << "the appointed face templates not exist..." << endl;
+			#endif
+			return false;
+		}
+		// save unprocessed face:
+		file_name.sprintf("%s/show.pgm", sub_folder.toStdString().c_str());
+		cv::imwrite(file_name.toStdString(), face_templates[0]);
+		// save normalized faces:
+		for(size_t i=1; i<face_templates.size(); ++i)
+		{
+			file_name.sprintf("%s/%d.pgm", sub_folder.toStdString().c_str(), i);
+			cv::imwrite(file_name.toStdString(), face_templates[i]);
+		}
+		#else // #if (USED_IN_QT == 1)
+		USES_CONVERSION;
+		sub_folder.Format(_T("%s/s%d"), top_folder, index);
+		if(!_directory_exist(sub_folder))
+		{
+			#if (DEBUG_MSG == 1)
+			cout << "the appointed face templates not exist..." << endl;
+			#endif
+			return false;
+		}
+		// save unprocessed face:
+		file_name.Format(_T("%s/show.pgm"), sub_folder);
+		cv::imwrite(W2A(file_name), face_templates[0]);
+		// save normalized faces:
+		for(size_t i=1; i<face_templates.size(); ++i)
+		{
+			file_name.Format(_T("%s/%d.pgm"), sub_folder, i);
+			cv::imwrite(W2A(file_name), face_templates[i]);
+		}
+		#endif
 	}
-	#else // #if (USED_IN_QT == 1)
-	USES_CONVERSION;
-	while(1)
-	{
-		sub_folder.Format(_T("%s/s%d"), top_folder, lib_index);
-		if(_create_directory(sub_folder))
-			break;
-		lib_index++;
-	}
-	// save unprocessed face:
-	file_name.Format(_T("%s/show.pgm"), sub_folder);
-	cv::imwrite(W2A(file_name), face_templates[0]);
-	// save normalized faces:
-	for(size_t i=1; i<face_templates.size(); ++i)
-	{
-		file_name.Format(_T("%s/%d.pgm"), sub_folder, i);
-		cv::imwrite(W2A(file_name), face_templates[i]);
-	}
-	#endif
 
 	// flag that database updated:
 	_database_updated = true;
@@ -469,6 +536,108 @@ bool FaceDetection::QueryRecognizedFaces(vector<struct recognized_info>& recogni
 	}
 
 	return recognized_faces.empty() ? false : true;
+}
+
+int FaceDetection::GetFaceTemplateCount() const
+{
+	#if (USED_IN_QT == 1)
+	QString sub_folder, file_name;
+	#else
+	CString sub_folder, file_name;
+	#endif
+
+	#if (DEBUG_MSG == 1)
+	cout << "save captured normalized faces into file..." << endl;
+	#endif
+	int lib_index = 1;
+
+	// create top folder:
+	#if (USED_IN_QT == 1)
+	QDir t;
+	while(1)
+	{
+		sub_folder.sprintf("%s/s%d", top_folder.toStdString().c_str(), lib_index);
+		if(!t.exists(sub_folder))
+			break;
+		lib_index++;
+	}
+	#else // #if (USED_IN_QT == 1)
+	USES_CONVERSION;
+	while(1)
+	{
+		sub_folder.Format(_T("%s/s%d"), top_folder, lib_index);
+		if(!_directory_exist(sub_folder))
+			break;
+		lib_index++;
+	}
+	#endif
+
+	// as templates based on 1, not 0...
+	return (lib_index-1);
+}
+
+
+vector<Mat> FaceDetection::GetFaceTemplates(int index) const
+{
+	vector<Mat> target_faces;
+
+	#if (USED_IN_QT == 1)
+	QString pathname("./face_database/s");
+	char tmp[10];
+	_itoa_s(index,tmp,10);
+	pathname = pathname + tmp + "/";
+	QString filename = pathname + QString("show.pgm");
+	Mat face;
+	QFile t;
+	if(t.exists(filename))
+	{
+		face = cv::imread(filename.toStdString());
+		target_faces.push_back(face);
+	}
+	int i;
+	for(i=1; true; i++)
+	{
+		char s[10];
+		_itoa_s(i,s,10);
+		filename = pathname + QString(s) + QString(".pgm");
+		#if(DEBUG_MSG == 1)
+		cout << filename.toStdString().c_str() << endl;
+		#endif
+		if(!t.exists(filename))
+			break;
+		face = cv::imread(filename.toStdString(),CV_LOAD_IMAGE_GRAYSCALE);
+		target_faces.push_back(face);
+	}
+	#else // #if (USED_IN_QT == 1)
+	USES_CONVERSION;
+	string pathname = W2A(top_folder + _T("/s"));
+	char tmp[10];
+	_itoa_s(index,tmp,10);
+	pathname = pathname + tmp + "/";
+	string filename = pathname + "show.pgm";
+	cout << filename.c_str() << endl;
+	Mat face;
+	if(_file_exist(A2W(filename.c_str())))
+	{
+		face = cv::imread(filename);
+		cout << "face: " << face.cols << ", " << face.rows << endl;
+		target_faces.push_back(face);
+	}
+	int i;
+	for(i=1; true; i++)
+	{
+		char s[10];
+		_itoa_s(i,s,10);
+		filename = pathname + s + ".pgm";
+		if(!_file_exist(A2W(filename.c_str())))
+			break;
+		cout << filename.c_str() << endl;
+		face = cv::imread(filename,CV_LOAD_IMAGE_GRAYSCALE);
+		target_faces.push_back(face);
+	}
+	#endif
+	
+	return target_faces;
 }
 
 ///////////////////////////////// middle -level function ////////////////////////////////
@@ -1172,9 +1341,7 @@ bool FaceDetection::_create_one_norm_face(size_t face_index,
 			CurFaceInfo[face_index]._invalid_number++;
 			if(CurFaceInfo[face_index]._invalid_number >= 3) // when 3 times not extract eyes, we re-detect....
 			{
-                #if(DEBUG_MSG == 1)
 				cout << "re-detect occur..." << endl;
-                #endif
 				_reset_face_info(face_index);
 			}
             return false;
