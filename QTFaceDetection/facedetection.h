@@ -145,9 +145,10 @@ public:
 	/**
      * @brief SaveFaceTemplates: save face templates into database
      * @param face_templates: multi face templates array
+	 * @param label: the label of face_templates, set to -1 for new adding
      * @return true: face templates saved success, otherwise false.
      */
-    bool SaveFaceTemplates(vector<Mat>& face_templates, int index = -1);
+    bool SaveFaceTemplates(vector<Mat>& face_templates, int label = -1);
     /**
      * @brief RecognizeFace: recognize faces in frame
      * @param frame: in which to recognize faces
@@ -184,11 +185,11 @@ public:
      */
 	int GetFaceTemplateCount() const;
 	/**
-     * @brief GetFaceTemplates: Query one set of template faces appointed by index
-     * @param index: the index of target template, based on 1, not 0
+     * @brief GetFaceTemplates: Query one set of template faces appointed by label
+     * @param label: appointes which set of face templates to be required
      * @return template faces
      */
-	vector<Mat> GetFaceTemplates(int index) const;
+	vector<Mat> GetFaceTemplates(int label) const;
 
 protected:
     // middle-level functions:
