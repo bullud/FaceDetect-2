@@ -46,6 +46,14 @@ static bool _directory_exist(const CString& dir_path)
 	}  
 	return false;
 }
+static bool _delete_file(const CString& file_path)
+{
+	if(DeleteFile(file_path))
+	{
+		return true;
+	}
+	return false;
+}
 #endif
 //////////////////////////////////////////////////////////////////////////
 
@@ -351,7 +359,33 @@ bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates, int label /* 
 		sub_folder.Format(_T("%s/s%d"), top_folder, lib_index);
 		#endif
 	}
-	
+
+	// delete previous files:
+	#if (USED_IN_QT)
+	file_name.sprintf("%s/show.pgm", sub_folder.toStdString().c_str());
+	QFile f;
+	if(f.exists(file_name))
+        f.remove(file_name);
+	for(int index_t = 1; true; ++index_t)
+	{
+		file_name.sprintf("%s/%d.pgm", sub_folder.toStdString().c_str(), index_t);
+		if(!f.exists(file_name))
+			break;
+        f.remove(file_name);
+	}
+	#else
+	file_name.Format(_T("%s/show.pgm"), sub_folder);
+	if(_file_exist(file_name))
+		_delete_file(file_name);
+	for(int index_t = 1; true; ++index_t)
+	{
+		file_name.Format(_T("%s/%d.pgm"), sub_folder, index_t);
+		if(!_file_exist(file_name))
+			break;
+		_delete_file(file_name);
+	}
+	#endif
+
 	// save faces into files:
 	#if (USED_IN_QT == 1)
 	// save unprocessed face:
