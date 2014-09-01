@@ -84,6 +84,12 @@ MainWindow::MainWindow(QWidget *parent) :
     shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidgetTemplateFace);
     connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItemTemplate()));
 
+    for (int i = 0; i < faceDetection_.GetFaceTemplateCount(); ++i)
+    {
+        vector<Mat> templates { faceDetection_.GetFaceTemplates(i+1) };
+        OpenCVUtil::AddFaceItem(ui->listWidgetFaces, *templates.begin(), i);
+    }
+
     ui->statusBar->addPermanentWidget(statusBarMessage);
 
     adjustSize();
@@ -128,6 +134,7 @@ void MainWindow::selectMode(QAction *action)
         dataContext_.SetMode(TEMPLATE);
         ui->groupBoxVideoRecord->hide();
         ui->groupBoxFace->hide();
+        ui->groupBoxFaces->show();
         ui->groupBoxFaceTemplateControl->show();
         ui->groupBoxTemplate->show();
         ui->actionVideoSource->setEnabled(false);
@@ -136,6 +143,7 @@ void MainWindow::selectMode(QAction *action)
     else if (action == ui->faceRecognition)
     {
         dataContext_.SetMode(DETECTION);
+        ui->groupBoxFaces->hide();
         ui->groupBoxVideoRecord->hide();
         ui->groupBoxTemplate->hide();
         ui->groupBoxFaceTemplateControl->hide();
@@ -148,6 +156,7 @@ void MainWindow::selectMode(QAction *action)
     {
         UseCamera();
         dataContext_.SetMode(RECORD);
+        ui->groupBoxFaces->hide();
         ui->groupBoxFace->hide();
         ui->groupBoxTemplate->hide();
         ui->groupBoxFaceTemplateControl->hide();
