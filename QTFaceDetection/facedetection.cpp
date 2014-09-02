@@ -301,7 +301,7 @@ bool FaceDetection::ExtractFace(Mat& face)
 	return true;
 }
 
-bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates, int label /* = -1 */)
+bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates, int index /* = -1 */)
 {
 	// add face_templates to the tail...
 	#if (USED_IN_QT == 1)
@@ -314,6 +314,7 @@ bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates, int label /* 
 	cout << "save captured normalized faces into file..." << endl;
 	#endif
 	int lib_index = 1;
+	int label = index + 1;
 
 	if(face_templates.size() <= 1)
 		return false;
@@ -365,13 +366,13 @@ bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates, int label /* 
 	file_name.sprintf("%s/show.pgm", sub_folder.toStdString().c_str());
 	QFile f;
 	if(f.exists(file_name))
-        f.remove(file_name);
+		f.remove(file_name);
 	for(int index_t = 1; true; ++index_t)
 	{
 		file_name.sprintf("%s/%d.pgm", sub_folder.toStdString().c_str(), index_t);
 		if(!f.exists(file_name))
 			break;
-        f.remove(file_name);
+		f.remove(file_name);
 	}
 	#else
 	file_name.Format(_T("%s/show.pgm"), sub_folder);
@@ -573,9 +574,10 @@ int FaceDetection::GetFaceTemplateCount() const
 }
 
 
-vector<Mat> FaceDetection::GetFaceTemplates(int label) const
+vector<Mat> FaceDetection::GetFaceTemplates(int index) const
 {
 	vector<Mat> target_faces;
+	int label = index + 1;
 
 	#if (USED_IN_QT == 1)
 	QString pathname("./face_database/s");
