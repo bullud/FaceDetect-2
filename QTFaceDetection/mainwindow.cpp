@@ -8,9 +8,11 @@
 #include <QFileDialog>
 #include <QShortcut>
 #include <string>
+#include <algorithm>
 #include <cassert>
 
 using std::string;
+using std::for_each;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -89,6 +91,9 @@ MainWindow::MainWindow(QWidget *parent) :
         vector<Mat> templates { faceDetection_.GetFaceTemplates(i) };
         OpenCVUtil::AddFaceItem(ui->listWidgetFaces, *templates.begin(), i);
     }
+    QListWidgetItem *item = new QListWidgetItem(QStringLiteral("新建"));
+    item->setData(Qt::UserRole, faceDetection_.GetFaceTemplateCount());
+    ui->listWidgetFaces->addItem(item);
 
     ui->statusBar->addPermanentWidget(statusBarMessage);
 
@@ -420,4 +425,25 @@ void MainWindow::on_pushButtonSaveTemplate_clicked()
         QStringLiteral("成功写入模板文件"),
         QMessageBox::Yes,
         QMessageBox::Yes);
+}
+
+void MainWindow::on_listWidgetFaces_currentItemChanged(QListWidgetItem *current, QListWidgetItem * /*previous*/)
+{
+    int label = current->data(Qt::UserRole).toInt();
+    if (faceDetection_.GetFaceTemplateCount() == label)
+    {
+        ui->listWidgetTemplateFace->clear();
+        faceTemplates_.clear();
+    }
+    else
+    {
+        ui->listWidgetTemplateFace->clear();
+        faceTemplates_.clear();
+
+        vector<Mat> templates { faceDetection_.GetFaceTemplates(label) };
+        for_each(templates.begin(), templates.end(), [this](const Mat &face){
+            faceTemplates_.push_back(face);
+            OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
+        });
+    }
 }

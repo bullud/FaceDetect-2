@@ -1,4 +1,5 @@
-﻿#ifndef MAINWINDOW_H
+﻿
+#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include "facedetection.h"
@@ -6,6 +7,7 @@
 
 #include <QMainWindow>
 #include <QActionGroup>
+#include <QListWidgetItem>
 #include <QTimer>
 #include <QLabel>
 
@@ -56,6 +58,7 @@ private slots:
     void on_actionAbout_triggered();
     void on_pushButtonDeleteTemplate_clicked();
     void on_pushButtonSaveTemplate_clicked();
+    void on_listWidgetFaces_currentItemChanged(QListWidgetItem *current, QListWidgetItem *previous);
 };
 
 #endif // MAINWINDOW_H
