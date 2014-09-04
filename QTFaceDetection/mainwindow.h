@@ -44,6 +44,7 @@ private:
 
 private:
     void UseCamera();
+    void RefreshFaceTemplates();
 
 private slots:
     void OnTimeout();

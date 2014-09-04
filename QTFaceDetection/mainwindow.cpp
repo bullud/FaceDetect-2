@@ -86,14 +86,7 @@ MainWindow::MainWindow(QWidget *parent) :
     shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidgetTemplateFace);
     connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItemTemplate()));
 
-    for (int i = 0; i < faceDetection_.GetFaceTemplateCount(); ++i)
-    {
-        vector<Mat> templates { faceDetection_.GetFaceTemplates(i) };
-        OpenCVUtil::AddFaceItem(ui->listWidgetFaces, *templates.begin(), i);
-    }
-    QListWidgetItem *item = new QListWidgetItem(QStringLiteral("新建"));
-    item->setData(Qt::UserRole, faceDetection_.GetFaceTemplateCount());
-    ui->listWidgetFaces->addItem(item);
+    RefreshFaceTemplates();
 
     ui->statusBar->addPermanentWidget(statusBarMessage);
 
@@ -323,6 +316,8 @@ void MainWindow::on_pushButton_2_clicked()
 
 void MainWindow::on_pushButtonStartStopTemplate_clicked()
 {
+    ui->listWidgetFaces->setEnabled(false);
+
     face_parameter param;
     faceDetection_.QueryParameters(&param);
 
@@ -393,6 +388,8 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_pushButtonDeleteTemplate_clicked()
 {
+    ui->listWidgetFaces->setEnabled(false);
+
     if (faceTemplates_.size() == 0) return;
     faceTemplates_.pop_back();
     delete ui->listWidgetTemplateFace->item(faceTemplates_.size());
@@ -405,30 +402,65 @@ void MainWindow::on_pushButtonDeleteTemplate_clicked()
 
 void MainWindow::on_pushButtonSaveTemplate_clicked()
 {
-    // when face templates enough, do save action as below...
-    if(!faceDetection_.SaveFaceTemplates(faceTemplates_))
+    QListWidgetItem *current = ui->listWidgetFaces->currentItem();
+    int label = current->data(Qt::UserRole).toInt();
+
+    if (faceDetection_.GetFaceTemplateCount() == label)
     {
-        QMessageBox::critical(
+        // when face templates enough, do save action as below...
+        if(!faceDetection_.SaveFaceTemplates(faceTemplates_))
+        {
+            QMessageBox::critical(
+                this,
+                QStringLiteral("错误"),
+                QStringLiteral("写入模板文件失败"),
+                QMessageBox::Yes,
+                QMessageBox::Yes);
+            return;
+        }
+
+        ui->listWidgetTemplateFace->clear();
+        faceTemplates_.clear();
+        QMessageBox::information(
             this,
-            QStringLiteral("错误"),
-            QStringLiteral("写入模板文件失败"),
+            QStringLiteral("成功"),
+            QStringLiteral("成功写入模板文件"),
             QMessageBox::Yes,
             QMessageBox::Yes);
-        return;
+    }
+    else
+    {
+        if (!faceDetection_.SaveFaceTemplates(faceTemplates_, label))
+        {
+            QMessageBox::critical(
+                this,
+                QStringLiteral("错误"),
+                QStringLiteral("写入模板文件失败"),
+                QMessageBox::Yes,
+                QMessageBox::Yes);
+            return;
+        }
+
+        ui->listWidgetTemplateFace->clear();
+        faceTemplates_.clear();
+        QMessageBox::information(
+            this,
+            QStringLiteral("成功"),
+            QStringLiteral("成功写入模板文件"),
+            QMessageBox::Yes,
+            QMessageBox::Yes);
     }
 
-    ui->listWidgetTemplateFace->clear();
-    faceTemplates_.clear();
-    QMessageBox::information(
-        this,
-        QStringLiteral("成功"),
-        QStringLiteral("成功写入模板文件"),
-        QMessageBox::Yes,
-        QMessageBox::Yes);
+    ui->listWidgetFaces->setEnabled(true);
+    ui->pushButtonSaveTemplate->setEnabled(false);
+
+    RefreshFaceTemplates();
 }
 
 void MainWindow::on_listWidgetFaces_currentItemChanged(QListWidgetItem *current, QListWidgetItem * /*previous*/)
 {
+    if (nullptr == current) return;
+
     int label = current->data(Qt::UserRole).toInt();
     if (faceDetection_.GetFaceTemplateCount() == label)
     {
@@ -446,4 +478,22 @@ void MainWindow::on_listWidgetFaces_currentItemChanged(QListWidgetItem *current,
             OpenCVUtil::AddFaceItem(ui->listWidgetTemplateFace, face, faceTemplates_.size());
         });
     }
+}
+
+void MainWindow::RefreshFaceTemplates()
+{
+    ui->listWidgetFaces->clear();
+    ui->listWidgetTemplateFace->clear();
+    faceTemplates_.clear();
+
+    for (int i = 0; i < faceDetection_.GetFaceTemplateCount(); ++i)
+    {
+        vector<Mat> templates { faceDetection_.GetFaceTemplates(i) };
+        OpenCVUtil::AddFaceItem(ui->listWidgetFaces, *templates.begin(), i);
+    }
+    QListWidgetItem *item = new QListWidgetItem(QStringLiteral("新建"));
+    item->setData(Qt::UserRole, faceDetection_.GetFaceTemplateCount());
+    ui->listWidgetFaces->addItem(item);
+
+    ui->listWidgetFaces->selectionModel()->reset();
 }
