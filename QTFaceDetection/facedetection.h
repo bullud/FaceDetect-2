@@ -94,9 +94,9 @@ struct face_parameter{
 #define BIT_LIGHT_TUNING			(1 << 4)
 // default parameter values:
 #define DEF_MAX_FACES               (5)
-#define DEF_MIN_KP_COUNT            (16)
+#define DEF_MIN_KP_COUNT            (25)
 #define DEF_MIN_TEMP_FACES          (10)
-#define DEF_SIMILAR_GATE            (0.23)
+#define DEF_SIMILAR_GATE            (0.22)
 #define DEF_LIGHT_TUNING			(0.0)
 
 class FaceDetection
@@ -189,7 +189,13 @@ public:
      * @param index: index of the face templates being queried
      * @return template faces
      */
-    vector<Mat> GetFaceTemplates(int index) const;
+	vector<Mat> GetFaceTemplates(int index) const;
+	/**
+     * @brief DeleteFaceTemplates: Delete one set of template faces indexed by index
+     * @param index: index of the face templates to be deleted
+     * @return template faces
+     */
+	bool DeleteFaceTemplates(int index);
 
 protected:
     // middle-level functions:

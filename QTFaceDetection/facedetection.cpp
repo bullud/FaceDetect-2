@@ -54,6 +54,23 @@ static bool _delete_file(const CString& file_path)
 	}
 	return false;
 }
+static bool _delete_directory(const CString& dir_path)
+{
+	if(RemoveDirectory(dir_path))
+	{
+		return true;
+	}
+	return false;
+}
+static bool _rename_directory(const CString& old_name, const CString& new_name)
+{
+	if(MoveFile(old_name, new_name))
+	{
+		return true;
+	}
+	cout << "move file failed with error = " << GetLastError() << endl;
+	return false;
+}
 #endif
 //////////////////////////////////////////////////////////////////////////
 
@@ -311,16 +328,15 @@ bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates, int index /* 
 	#endif
 	
 	#if (DEBUG_MSG == 1)
-	cout << "save captured normalized faces into file..." << endl;
+	cout << "Save captured normalized faces into file..." << endl;
 	#endif
-	int lib_index = 1;
-	int label = index + 1;
+    int lib_index = index + 1;
 
 	if(face_templates.size() <= 1)
 		return false;
 
 	// decide label of faces to be saved....
-	if(label <= 0)
+    if(lib_index <= 0)
 	{
 		// create top folder:
 		#if (USED_IN_QT == 1)
@@ -353,7 +369,6 @@ bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates, int index /* 
 	else
 	{
 		// appoint index directly!
-		lib_index = label; 
 		#if (USED_IN_QT == 1)
 		sub_folder.sprintf("%s/s%d", top_folder.toStdString().c_str(), lib_index);
 		#else
@@ -410,6 +425,128 @@ bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates, int index /* 
 		cv::imwrite(W2A(file_name), face_templates[i]);
 	}
 	#endif
+
+	// flag that database updated:
+	_database_updated = true;
+
+	return true;
+}
+
+bool FaceDetection::DeleteFaceTemplates(int index) 
+{
+	// add face_templates to the tail...
+	#if (USED_IN_QT == 1)
+	QString sub_folder, file_name, temp_folder, new_sub_folder;
+    QDir d;
+    QFile f;
+	#else
+	CString sub_folder, file_name, temp_folder, new_sub_folder;
+	#endif
+
+	#if (DEBUG_MSG == 1)
+	cout << "Delete one set of face templates..." << endl;
+	#endif
+    int lib_index = index + 1;
+
+	// appoint index directly!
+	#if (USED_IN_QT == 1)
+	sub_folder.sprintf("%s/s%d", top_folder.toStdString().c_str(), lib_index);
+    if(!d.exists(sub_folder))
+        return true;
+	#else
+	sub_folder.Format(_T("%s/s%d"), top_folder, lib_index);
+    // check if exist:
+    if(!_directory_exist(sub_folder))
+        return true;
+    #endif
+	
+	// delete previous files:
+	int temp_index = 1;
+	#if (USED_IN_QT == 1)
+	while(1)
+	{
+		temp_folder.sprintf("%s/deleted%d", top_folder.toStdString().c_str(), lib_index);
+		if(!d.exists(temp_folder))
+			break;
+		temp_index++;
+	}
+    d.rename(sub_folder, temp_folder);
+	#else
+	while(1)
+	{
+		temp_folder.Format(_T("%s/temp%d"), top_folder, temp_index);
+		if(!_directory_exist(temp_folder))
+			break;
+		temp_index++;
+	}
+	_rename_directory(sub_folder, temp_folder);
+	#endif
+	// delete previous files:
+	#if (USED_IN_QT)
+	file_name.sprintf("%s/show.pgm", temp_folder.toStdString().c_str());
+	if(f.exists(file_name))
+		f.remove(file_name);
+	for(int index_t = 1; true; ++index_t)
+	{
+		file_name.sprintf("%s/%d.pgm", temp_folder.toStdString().c_str(), index_t);
+		if(!f.exists(file_name))
+			break;
+		f.remove(file_name);
+	}
+	d.remove(temp_folder);
+	#else
+	file_name.Format(_T("%s/show.pgm"), temp_folder);
+	if(_file_exist(file_name))
+		_delete_file(file_name);
+	for(int index_t = 1; true; ++index_t)
+	{
+		file_name.Format(_T("%s/%d.pgm"), temp_folder, index_t);
+		if(!_file_exist(file_name))
+			break;
+		_delete_file(file_name);
+	}
+	_delete_directory(temp_folder);
+	#endif
+	
+	// we have to move following face templates up:
+	while(1)
+	{
+		cout << "lib_index = " << lib_index << endl;
+		#if (USED_IN_QT == 1)
+        sub_folder.sprintf("%s/s%d", top_folder.toStdString().c_str(), lib_index+1);
+		// check if exist:
+		if(!d.exists(sub_folder))
+			break;
+		// rename next folder:
+        new_sub_folder.sprintf("%s/s%d", top_folder.toStdString().c_str(), lib_index);
+        if(!d.rename(sub_folder, new_sub_folder))
+        {
+            #if (DEBUG_MSG == 1)
+            cout << "rename directory failed with label = " << lib_index << endl;
+            return false;
+            #endif
+        }
+
+		#else // #if (USED_IN_QT == 1)
+
+        sub_folder.Format(_T("%s/s%d"), top_folder, lib_index+1);
+		// check if exists:
+		if(!_directory_exist(sub_folder))
+			break;
+		// rename folder:
+        new_sub_folder.Format(_T("%s/s%d"), top_folder, lib_index);
+		if(!_rename_directory(sub_folder, new_sub_folder))
+		{
+			#if (DEBUG_MSG == 1)
+			cout << "rename directory failed with label = " << lib_index << endl;
+			return false;
+			#endif
+		}
+		#endif
+
+        // move to next folder:
+        lib_index++;
+	}
 
 	// flag that database updated:
 	_database_updated = true;
