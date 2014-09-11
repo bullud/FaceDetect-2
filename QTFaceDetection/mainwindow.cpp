@@ -81,12 +81,17 @@ MainWindow::MainWindow(QWidget *parent) :
         return;
     }
 
-    QShortcut* shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidget);
-    connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItem()));
-    shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidgetTemplateFace);
-    connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItemTemplate()));
-
     RefreshFaceTemplates();
+
+    QShortcut* shortcut;
+    shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidget);
+    connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItem()));
+
+    shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidgetFaces);
+    connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItemFaces()));
+
+    /*shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listWidgetTemplateFace);
+    connect(shortcut, SIGNAL(activated()), this, SLOT(deleteItemTemplate()));*/
 
     ui->statusBar->addPermanentWidget(statusBarMessage);
 
@@ -363,6 +368,18 @@ void MainWindow::deleteItem()
 {
     delete ui->listWidget->currentItem();
     bredetect_ = true;
+}
+
+void MainWindow::deleteItemTemplate()
+{
+}
+
+void MainWindow::deleteItemFaces()
+{
+    int label = ui->listWidgetFaces->currentItem()->data(Qt::UserRole).toInt();
+    if (label >= faceDetection_.GetFaceTemplateCount()) return;
+    faceDetection_.DeleteFaceTemplates(label);
+    RefreshFaceTemplates();
 }
 
 void MainWindow::on_actionVideoSource_triggered()
