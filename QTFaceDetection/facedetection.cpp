@@ -338,6 +338,7 @@ bool FaceDetection::SaveFaceTemplates(vector<Mat>& face_templates, int index /* 
 	// decide label of faces to be saved....
     if(lib_index <= 0)
 	{
+        lib_index = 1;
 		// create top folder:
 		#if (USED_IN_QT == 1)
 		QDir t;
@@ -460,18 +461,18 @@ bool FaceDetection::DeleteFaceTemplates(int index)
         return true;
     #endif
 	
-	// delete previous files:
+    // create temp folder in which we move the files to be deleted:
 	int temp_index = 1;
 	#if (USED_IN_QT == 1)
 	while(1)
 	{
-		temp_folder.sprintf("%s/deleted%d", top_folder.toStdString().c_str(), lib_index);
+        temp_folder.sprintf("%s/temp%d", top_folder.toStdString().c_str(), temp_index);
 		if(!d.exists(temp_folder))
 			break;
 		temp_index++;
 	}
     d.rename(sub_folder, temp_folder);
-	#else
+    #else
 	while(1)
 	{
 		temp_folder.Format(_T("%s/temp%d"), top_folder, temp_index);
@@ -493,7 +494,7 @@ bool FaceDetection::DeleteFaceTemplates(int index)
 			break;
 		f.remove(file_name);
 	}
-	d.remove(temp_folder);
+    d.rmdir(temp_folder);
 	#else
 	file_name.Format(_T("%s/show.pgm"), temp_folder);
 	if(_file_exist(file_name))
