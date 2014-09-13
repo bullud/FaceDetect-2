@@ -413,8 +413,7 @@ void MainWindow::on_pushButtonDeleteTemplate_clicked()
 
     face_parameter param;
     faceDetection_.QueryParameters(&param);
-    if (faceTemplates_.size() <= param._min_temp_faces)
-        ui->pushButtonSaveTemplate->setEnabled(false);
+    ui->pushButtonSaveTemplate->setEnabled(faceTemplates_.size() > param._min_temp_faces);
 }
 
 void MainWindow::on_pushButtonSaveTemplate_clicked()
