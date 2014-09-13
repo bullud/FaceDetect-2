@@ -512,4 +512,5 @@ void MainWindow::RefreshFaceTemplates()
     ui->listWidgetFaces->addItem(item);
 
     ui->listWidgetFaces->selectionModel()->reset();
+    ui->listWidgetFaces->setCurrentRow(0);
 }
