@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup>
+    <PlatformToolset>v120</PlatformToolset>
     <Configuration Condition="'$(Configuration)'==''">Debug</Configuration>
     <Platform Condition="'$(Platform)'==''">x86</Platform>
     <OutputPath>$(PROJECT_ROOT)bin\$(Configuration)\$(Platform)\$(ProjectName)\</OutputPath>

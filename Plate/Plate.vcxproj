@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A457F755-7E45-43A9-9B8E-64592B1E1A8E}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Plate</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup>
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="opencv249.props" />
+    <Import Project="$(PROJECT_ROOT)root.props" />
+  </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <LinkIncremental>true</LinkIncremental>
+    <PostBuildEvent>
+      <Command>for %%a in ("$(VSTOOLS)..\..\VC\redist\Debug_NonRedist\$(PlatformTarget)\Microsoft.VC$(VSVER).DebugCRT\msvcp$(VSVER)d.dll", "$(VSTOOLS)..\..\VC\redist\Debug_NonRedist\$(PlatformTarget)\Microsoft.VC$(VSVER).DebugCRT\msvcr$(VSVER)d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_core249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_highgui249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_objdetect249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_imgproc249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_features2d249d.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_flann249d.dll") do (xcopy /Y %%a "$(OutDir)")</Command>
+    </PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <LinkIncremental>false</LinkIncremental>
+    <PostBuildEvent>
+      <Command>for %%a in ("$(VSTOOLS)..\..\VC\redist\$(PlatformTarget)\Microsoft.VC$(VSVER).CRT\msvcp$(VSVER).dll", "$(VSTOOLS)..\..\VC\redist\$(PlatformTarget)\Microsoft.VC$(VSVER).CRT\msvcr$(VSVER).dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_core249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_highgui249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_objdetect249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_imgproc249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_features2d249.dll", "$(OPENCV_DIR)\$(PlatformTarget)\vc12\bin\opencv_flann249.dll") do (xcopy /Y %%a "$(OutDir)")</Command>
+    </PostBuildEvent>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="targetver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Plate.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

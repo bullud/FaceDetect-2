@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectFiles Include="FaceDetection\FaceDetection.vcxproj" />
     <ProjectFiles Include="FaceDetectionInstaller\FaceDetectionInstaller.wixproj" />
+    <ProjectFiles Include="Plate\Plate.vcxproj" />
   </ItemGroup>
   <Import Project="root.targets"/>
 </Project>
